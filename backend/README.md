@@ -14,6 +14,7 @@
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
+pytest -q
 uvicorn app.main:app --reload   # http://localhost:8000/docs
 ```
