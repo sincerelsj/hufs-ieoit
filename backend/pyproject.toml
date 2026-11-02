@@ -16,6 +16,7 @@ dependencies = [
     "cryptography",
     "itsdangerous",
     "boto3",
+    "tzdata",  # Windows에서 zoneinfo("Asia/Seoul")가 동작하도록 시스템 tz DB 대신 제공
 ]
 
 [project.optional-dependencies]
