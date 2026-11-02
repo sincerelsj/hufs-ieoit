@@ -51,7 +51,7 @@ def to_post_in(item: dict, media: tuple[MediaIn, ...]) -> PostIn:
 def _download(http: httpx.Client, storage: MediaStorage, url: str, key: str, ext: str) -> bool:
     """CDN 파일을 저장소에 복사한다. 실패(비 2xx, 전송 오류)하면 False. 예외 메시지에 URL을 싣지 않는다."""
     try:
-        response = http.get(url)
+        response = http.get(url, follow_redirects=True)
     except httpx.HTTPError:
         return False
     if not response.is_success:

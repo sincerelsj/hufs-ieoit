@@ -281,6 +281,27 @@ def test_media_download_failure_keeps_post(session, settings, ig, storage, http,
 
 
 @respx.mock
+def test_media_download_follows_cdn_redirect(session, settings, ig, storage, http, page1):
+    channel = make_channel(session, settings)
+    page1["data"] = page1["data"][:1]
+    page1.pop("paging")
+    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page1))
+    respx.get(f"{CDN}/17900000000000001.jpg").mock(
+        return_value=httpx.Response(302, headers={"location": "https://cdn2.example.test/moved.jpg"})
+    )
+    respx.get("https://cdn2.example.test/moved.jpg").mock(
+        return_value=httpx.Response(200, content=b"redirected", headers={"content-type": "image/jpeg"})
+    )
+
+    result = sync_channel(session, channel, ig, storage, http, settings, full=True)
+
+    assert result.created == 1
+    assert result.media_failed == 0
+    post = session.scalar(select(Post).where(Post.dedupe_key == "ig:17900000000000001"))
+    assert storage.open(post.media[0].storage_key) == b"redirected"
+
+
+@respx.mock
 def test_media_download_transport_error_keeps_post(session, settings, ig, storage, http, page1):
     channel = make_channel(session, settings)
     page1["data"] = page1["data"][:1]

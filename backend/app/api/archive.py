@@ -43,7 +43,7 @@ def list_years(slug: str, session: Session = Depends(get_session)) -> list[YearC
 @router.get("/organizations/{slug}/archive", response_model=ArchiveOut)
 def get_archive(
     slug: str,
-    academic_year: int = Query(),
+    academic_year: int = Query(ge=2000, le=2100),
     session: Session = Depends(get_session),
 ) -> ArchiveOut:
     org = get_organization_or_404(session, slug)

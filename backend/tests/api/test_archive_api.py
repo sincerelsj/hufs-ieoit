@@ -1,6 +1,8 @@
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import pytest
+
 from app.api.integrations import get_storage
 from app.models import PostMedia
 from app.storage import LocalStorage
@@ -144,6 +146,18 @@ def test_media_unknown_extension_defaults_to_octet_stream(client, settings):
 def test_media_missing_or_invalid_key_404(client):
     assert client.get("/media/instagram/c/missing.jpg").status_code == 404
     assert client.get("/media/instagram/%5Cevil.jpg").status_code == 404
+
+
+@pytest.mark.parametrize("year", [1999, 2101, 0, 99999999999])
+def test_archive_academic_year_out_of_range_422(client, make_org, year):
+    make_org()
+    assert client.get(f"/organizations/council/archive?academic_year={year}").status_code == 422
+
+
+def test_archive_academic_year_bounds_ok(client, make_org):
+    make_org()
+    assert client.get("/organizations/council/archive?academic_year=2000").status_code == 200
+    assert client.get("/organizations/council/archive?academic_year=2100").status_code == 200
 
 
 class _FakeNcpStorage:

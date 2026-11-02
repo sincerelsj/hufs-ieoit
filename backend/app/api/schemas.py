@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.archive.masking import mask_phones
 from app.models import Organization, Post, PostMedia, Term
@@ -23,10 +23,11 @@ class OrganizationOut(BaseModel):
 
 
 class OrganizationIn(BaseModel):
-    slug: str
-    name: str
+    # 길이는 models.Organization 컬럼 길이와 같다.
+    slug: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    name: str = Field(min_length=1, max_length=200)
     kind: Literal["student_council", "office", "club"]
-    department: str
+    department: str = Field(min_length=1, max_length=200)
 
 
 class YearCount(BaseModel):
@@ -119,7 +120,7 @@ class ArchiveOut(BaseModel):
 
 
 class TermIn(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=200)  # models.Term.name 컬럼 길이
     ordinal: int | None = None
     start_date: date
     end_date: date | None = None
@@ -128,7 +129,7 @@ class TermIn(BaseModel):
 class TermPatch(BaseModel):
     """부분 수정. 보낸 필드만 바꾸므로 end_date를 null로 보내면 진행 중으로 되돌린다."""
 
-    name: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=200)
     ordinal: int | None = None
     start_date: date | None = None
     end_date: date | None = None

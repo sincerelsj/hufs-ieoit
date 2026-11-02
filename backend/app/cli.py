@@ -1,4 +1,5 @@
 import argparse
+import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
 
@@ -127,6 +128,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # httpx는 INFO 로그에 전체 URL(access_token 쿼리 포함)을 남기므로 WARNING 이상만 내보낸다.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     args = build_parser().parse_args(argv)
     return COMMANDS[args.command](args)
 

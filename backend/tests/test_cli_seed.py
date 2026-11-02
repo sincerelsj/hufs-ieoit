@@ -40,3 +40,11 @@ def test_cli_seed_creates_tables(cli_db: Path) -> None:
             assert count_orgs(session) == 3
     finally:
         engine.dispose()
+
+
+def test_cli_main_quiets_httpx_logger(cli_db: Path) -> None:
+    import logging
+
+    logging.getLogger("httpx").setLevel(logging.INFO)
+    assert main(["seed"]) == 0
+    assert logging.getLogger("httpx").level == logging.WARNING

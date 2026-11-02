@@ -19,7 +19,7 @@ from app.api.schemas import (
     TermPatch,
 )
 from app.archive.terms import TermOverlapError, check_no_overlap, delete_term, reassign_posts
-from app.collectors.instagram.oauth import build_connect_url
+from app.collectors.instagram.oauth import build_connect_url, missing_connect_settings
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.models import Channel, Organization, Post, Term
@@ -135,12 +135,13 @@ def connect_url(
     settings: Settings = Depends(get_settings),
 ) -> ConnectUrlOut:
     get_organization_or_404(session, slug)
-    try:
-        return ConnectUrlOut(url=build_connect_url(settings, slug))
-    except RuntimeError:  # STATE_SECRET 미설정
+    # 연결 후 토큰을 저장·암호화할 수 있는 설정까지 갖춰져야 링크를 내준다. 환경변수 이름만 알리고 값은 싣지 않는다.
+    if missing := missing_connect_settings(settings):
         raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE, "서버 설정이 완료되지 않았습니다."
-        ) from None
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "서버 설정이 완료되지 않았습니다. 확인할 환경변수: " + ", ".join(sorted(set(missing))),
+        )
+    return ConnectUrlOut(url=build_connect_url(settings, slug))
 
 
 @router.delete("/channels/{channel_id}", response_model=PurgeResult)

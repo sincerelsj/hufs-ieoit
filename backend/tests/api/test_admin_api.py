@@ -53,6 +53,31 @@ def test_create_organization_rejects_bad_kind(client, admin):
     assert r.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"slug": ""},
+        {"slug": "x" * 101},
+        {"slug": "Upper"},
+        {"slug": "with_underscore"},
+        {"slug": "-leading-hyphen"},
+        {"name": ""},
+        {"name": "가" * 201},
+        {"department": ""},
+        {"department": "가" * 201},
+    ],
+)
+def test_create_organization_validates_lengths_and_slug(client, session, admin, changes):
+    r = client.post("/admin/organizations", json={**ORG_BODY, **changes}, headers=admin)
+    assert r.status_code == 422
+    assert session.scalars(select(Organization)).all() == []
+
+
+def test_create_organization_accepts_max_lengths(client, admin):
+    body = {**ORG_BODY, "slug": "a" * 100, "name": "가" * 200, "department": "가" * 200}
+    assert client.post("/admin/organizations", json=body, headers=admin).status_code == 201
+
+
 # --- 임기 ---
 
 
@@ -244,6 +269,24 @@ def test_patch_post_masks_caption(client, make_org, make_post, admin):
     assert r.json()["caption"] == "010-****-****"
 
 
+def test_term_name_validation_422(client, make_org, make_term, admin):
+    org = make_org()
+    term = make_term(org)
+    base = {"start_date": "2030-03-01"}
+    assert client.post("/admin/organizations/council/terms", json={**base, "name": ""}, headers=admin).status_code == 422
+    assert (
+        client.post("/admin/organizations/council/terms", json={**base, "name": "가" * 201}, headers=admin).status_code
+        == 422
+    )
+    assert client.patch(f"/admin/organizations/council/terms/{term.id}", json={"name": ""}, headers=admin).status_code == 422
+    assert (
+        client.patch(
+            f"/admin/organizations/council/terms/{term.id}", json={"name": "가" * 201}, headers=admin
+        ).status_code
+        == 422
+    )
+
+
 # --- 연결 링크 ---
 
 
@@ -254,6 +297,35 @@ def test_connect_url(client, make_org, admin):
     query = parse_qs(urlparse(r.json()["url"]).query)
     assert query["client_id"] == ["test-app-id"]
     assert "state" in query
+
+
+@pytest.mark.parametrize(
+    "field,env_name",
+    [
+        ("state_secret", "STATE_SECRET"),
+        ("instagram_app_id", "INSTAGRAM_APP_ID"),
+        ("instagram_app_secret", "INSTAGRAM_APP_SECRET"),
+        ("instagram_redirect_uri", "INSTAGRAM_REDIRECT_URI"),
+        ("token_encryption_key", "TOKEN_ENCRYPTION_KEY"),
+    ],
+)
+def test_connect_url_503_when_setting_empty(client, settings, make_org, admin, field, env_name):
+    make_org()
+    secret_values = {settings.state_secret, settings.instagram_app_secret, settings.token_encryption_key}
+    setattr(settings, field, "")
+    r = client.get("/admin/organizations/council/instagram/connect-url", headers=admin)
+    assert r.status_code == 503
+    assert env_name in r.json()["detail"]
+    assert not any(v and v in r.text for v in secret_values)
+
+
+def test_connect_url_503_when_fernet_key_invalid(client, settings, make_org, admin):
+    make_org()
+    settings.token_encryption_key = "not-a-valid-fernet-key"
+    r = client.get("/admin/organizations/council/instagram/connect-url", headers=admin)
+    assert r.status_code == 503
+    assert "TOKEN_ENCRYPTION_KEY" in r.json()["detail"]
+    assert "not-a-valid-fernet-key" not in r.text
 
 
 def test_connect_url_unknown_org_404(client, admin):
