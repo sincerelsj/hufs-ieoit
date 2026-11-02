@@ -8,10 +8,10 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.schemas import ArchiveOut, OrganizationOut, YearCount
-from app.config import Settings, get_settings
+from app.api.integrations import get_storage
 from app.db import get_session
 from app.models import Organization, Post, Term
-from app.storage import make_storage
+from app.storage import MediaStorage
 
 router = APIRouter()
 
@@ -85,12 +85,10 @@ def get_archive(
 
 
 @router.get("/media/{key:path}")
-def get_media(key: str, settings: Settings = Depends(get_settings)) -> Response:
-    # 로컬 저장소일 때만 서버가 파일을 내준다. NCP는 저장소 URL을 따로 쓴다.
-    if settings.media_storage != "local":
-        raise HTTPException(404)
+def get_media(key: str, storage: MediaStorage = Depends(get_storage)) -> Response:
+    # 저장소 종류(local/ncp)와 상관없이 서버가 읽어서 내준다. 저장 키가 곧 공개 URL 경로다.
     try:
-        data = make_storage(settings).open(key)
+        data = storage.open(key)
     except (ValueError, FileNotFoundError):
         raise HTTPException(404) from None
     content_type = mimetypes.guess_type(key)[0] or "application/octet-stream"

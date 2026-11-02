@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from app.api.integrations import get_storage
 from app.models import PostMedia
 from app.storage import LocalStorage
 
@@ -145,6 +146,35 @@ def test_media_missing_or_invalid_key_404(client):
     assert client.get("/media/instagram/%5Cevil.jpg").status_code == 404
 
 
-def test_media_404_when_storage_not_local(client, settings):
+class _FakeNcpStorage:
+    """NCP 저장소 대역. 실제 NCP를 호출하지 않는다."""
+
+    def __init__(self, objects: dict[str, bytes]) -> None:
+        self._objects = objects
+
+    def open(self, key: str) -> bytes:
+        try:
+            return self._objects[key]
+        except KeyError:
+            raise FileNotFoundError(key) from None
+
+
+def test_media_served_from_non_local_storage(client, settings):
     settings.media_storage = "ncp"
-    assert client.get("/media/instagram/c/a.jpg").status_code == 404
+    client.app.dependency_overrides[get_storage] = lambda: _FakeNcpStorage(
+        {"instagram/c/a.jpg": b"NCPDATA"}
+    )
+    r = client.get("/media/instagram/c/a.jpg")
+    assert r.status_code == 200
+    assert r.content == b"NCPDATA"
+    assert r.headers["content-type"] == "image/jpeg"
+    assert client.get("/media/instagram/c/missing.jpg").status_code == 404
+
+
+def test_media_uses_make_storage_for_ncp_setting(client, settings, monkeypatch):
+    settings.media_storage = "ncp"
+    fake = _FakeNcpStorage({"instagram/c/b.png": b"PNG"})
+    monkeypatch.setattr("app.api.integrations.make_storage", lambda s: fake)
+    r = client.get("/media/instagram/c/b.png")
+    assert r.status_code == 200
+    assert r.content == b"PNG"
