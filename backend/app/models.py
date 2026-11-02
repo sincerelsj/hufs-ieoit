@@ -69,6 +69,7 @@ class Term(Base):
     end_date: Mapped[date | None] = mapped_column(Date)  # NULL = 진행 중
 
     organization: Mapped[Organization] = relationship(back_populates="terms")
+    posts: Mapped[list["Post"]] = relationship(back_populates="term")
 
 
 class Channel(Base):
@@ -101,7 +102,7 @@ class Post(Base):
     dedupe_key: Mapped[str] = mapped_column(String(200))
     posted_at: Mapped[datetime] = mapped_column(UTCDateTime)
     academic_year: Mapped[int] = mapped_column(Integer, index=True)
-    term_id: Mapped[int | None] = mapped_column(ForeignKey("terms.id"))
+    term_id: Mapped[int | None] = mapped_column(ForeignKey("terms.id", ondelete="SET NULL"))
     term_locked: Mapped[bool] = mapped_column(Boolean, default=False)
     caption: Mapped[str | None] = mapped_column(Text)
     permalink: Mapped[str | None] = mapped_column(String(500))
@@ -113,7 +114,7 @@ class Post(Base):
 
     organization: Mapped[Organization] = relationship(back_populates="posts")
     channel: Mapped[Channel | None] = relationship()
-    term: Mapped[Term | None] = relationship()
+    term: Mapped[Term | None] = relationship(back_populates="posts")
     media: Mapped[list["PostMedia"]] = relationship(
         back_populates="post",
         order_by="PostMedia.position",
