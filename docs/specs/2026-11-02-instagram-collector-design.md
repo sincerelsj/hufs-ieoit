@@ -175,7 +175,7 @@ backend/
 3. 서버: state 서명 검증(위조·만료 시 거부) → `POST https://api.instagram.com/oauth/access_token`로 단기 토큰(1시간) → `GET graph.instagram.com/access_token?grant_type=ig_exchange_token`로 장기 토큰(60일) → `/me?fields=user_id,username`로 계정 확인 → channel 생성/토큰 교체 → 바로 전체 수집(6.2) 실행.
 
 ### 6.2 동기화 (`python -m app.cli sync-instagram [--org slug] [--full]`)
-1. `GET /me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,children{id,media_type,media_url,thumbnail_url}&limit=50`, `paging.next`를 따라간다 (최신순).
+1. `GET /me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username,children{id,media_type,media_url,thumbnail_url}&limit=50`, `paging.next`를 따라간다 (최신순).
 2. 기본(증분): 이미 저장된 `media_id`를 만나면 멈춘다. `--full`: 끝까지 돌며 캡션 수정 등을 반영.
 3. 새 게시물마다 미디어 파일을 내려받아 저장소에 올린다. API의 `media_url`은 **만료되는 CDN 링크**라 반드시 복사해 둔다.
    - `media_url`이 없으면(저작권 음원 릴스 등) `thumbnail_url` → 그것도 없으면 `permalink`만 저장.
@@ -213,6 +213,7 @@ backend/
 | POST/PATCH/DELETE | `/admin/organizations/{slug}/terms[/{id}]` | 임기 관리 (재배정 실행) |
 | PATCH | `/admin/posts/{id}` | 게시물 임기 수동 지정·고정 |
 | GET | `/admin/organizations/{slug}/instagram/connect-url` | 연결 링크 발급 |
+| DELETE | `/admin/channels/{id}?purge=true` | 채널 연결 삭제, purge면 그 채널 게시물·미디어 파일도 삭제 (운영자 요청 시 기록 삭제) |
 | GET | `/integrations/instagram/callback` | OAuth 콜백 |
 
 ## 9. 환경변수 (`.env.example`에 이름만 추가)
