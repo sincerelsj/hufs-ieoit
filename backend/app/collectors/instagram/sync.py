@@ -125,6 +125,8 @@ def sync_channel(
     organization_id = channel.organization_id
     channel_id = channel.id
     slug = session.scalar(select(Organization.slug).where(Organization.id == organization_id))
+    # 마지막으로 "끝까지 성공한" 동기화 시각. 이 실행이 끝나기 전에는 갱신되지 않으므로 미리 잡아 둔다.
+    last_completed_at = channel.last_synced_at
 
     try:
         token = decrypt_token(settings, channel.access_token_enc)
@@ -135,8 +137,15 @@ def sync_channel(
                     Post.dedupe_key == f"ig:{item['id']}",
                 )
             )
-            if existing is not None and not full:
-                break  # 최신순이므로 이후는 모두 이미 저장된 게시물이다.
+            if (
+                existing is not None
+                and not full
+                and last_completed_at is not None
+                and existing.posted_at <= last_completed_at
+            ):
+                # 최신순이므로 이후는 이미 완료된 동기화에서 저장된 게시물이다.
+                # last_completed_at 이후 게시물은 중단된 실행이 남긴 것일 수 있어 멈추지 않고 건너뛴다.
+                break
 
             current_media = {m.position: m for m in existing.media} if existing else {}
             media = tuple(

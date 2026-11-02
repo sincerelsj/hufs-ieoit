@@ -8,6 +8,7 @@ import respx
 from sqlalchemy import select
 
 from app.collectors.instagram.client import InstagramClient
+from app.archive.ingest import upsert_post
 from app.collectors.instagram.sync import SyncResult, sync_all, sync_channel, to_post_in
 from app.models import Channel, Organization, Post
 from app.security import encrypt_token
@@ -161,6 +162,54 @@ def test_incremental_stops_at_known(session, settings, ig, storage, http, page1,
     assert cdn.call_count == 0
 
 
+def add_known_post(session, item: dict) -> None:
+    """이전 실행이 이미 저장한 게시물을 만든다(미디어 없음)."""
+    upsert_post(session, 1, None, to_post_in(item, ()))
+    session.commit()
+
+
+@respx.mock
+def test_incremental_without_last_synced_walks_everything(
+    session, settings, ig, storage, http, page1, page2
+):
+    # 첫 실행이 1페이지 뒤에 중단됐다고 가정: 최신 게시물만 있고 last_synced_at은 None.
+    channel = make_channel(session, settings)
+    assert channel.last_synced_at is None
+    add_known_post(session, page1["data"][0])
+    _, second = mock_graph(page1, page2)
+    mock_cdn()
+
+    result = sync_channel(session, channel, ig, storage, http, settings)
+
+    assert second.call_count == 1
+    assert result.created == 4
+    assert result.updated == 1  # 이미 있던 게시물은 건너뛰지 않고 보완만 한다
+    assert result.error is None
+    assert len(session.scalars(select(Post)).all()) == 5
+    assert channel.last_synced_at is not None
+
+
+@respx.mock
+def test_incremental_passes_known_posts_newer_than_last_sync(
+    session, settings, ig, storage, http, page1, page2
+):
+    channel = make_channel(session, settings)
+    channel.last_synced_at = datetime(2026, 10, 25, tzinfo=timezone.utc)
+    session.commit()
+    # 001(11/1): 중단된 실행이 남김(last_synced_at보다 새로움) / 003(10/20): 완료된 동기화가 저장
+    add_known_post(session, page1["data"][0])
+    add_known_post(session, page1["data"][2])
+    _, second = mock_graph(page1, page2)
+    mock_cdn()
+
+    result = sync_channel(session, channel, ig, storage, http, settings)
+
+    assert result.created == 1  # 002(10/28)는 새 게시물
+    assert result.updated == 1  # 001은 지나치되 003에서 멈춘다
+    assert second.call_count == 0
+    assert session.scalar(select(Post).where(Post.dedupe_key == "ig:17900000000000002")) is not None
+
+
 @respx.mock
 def test_incremental_picks_up_only_new_posts(session, settings, ig, storage, http, page1, page2):
     channel = make_channel(session, settings)
@@ -243,6 +292,21 @@ def test_media_download_transport_error_keeps_post(session, settings, ig, storag
 
     assert result.created == 1
     assert result.media_failed == 1
+
+
+@respx.mock
+def test_thumbnail_download_failure_counts_as_failed(session, settings, ig, storage, http, page2):
+    channel = make_channel(session, settings)
+    page2.pop("paging")
+    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page2))
+    mock_cdn(fail={f"{CDN}/17900000000000004_thumb.jpg"})
+
+    result = sync_channel(session, channel, ig, storage, http, settings, full=True)
+
+    assert result.created == 2
+    assert result.media_failed == 1
+    reel = session.scalar(select(Post).where(Post.dedupe_key == "ig:17900000000000004"))
+    assert reel.media[0].thumbnail_key is None
 
 
 @respx.mock
