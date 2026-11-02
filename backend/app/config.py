@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     instagram_api_version: str = "v26.0"
     token_encryption_key: str = ""
     state_secret: str = ""
+    # 연결 링크 유효 시간(초). 운영자가 링크를 받아 학생회에 전달하는 시간을 고려해 기본 72시간.
+    oauth_state_max_age: int = 259200
     admin_token: str = ""
 
     media_storage: Literal["local", "ncp"] = "local"

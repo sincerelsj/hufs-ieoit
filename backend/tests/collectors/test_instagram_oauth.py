@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
@@ -173,6 +174,37 @@ def test_same_account_other_org_conflict(client, session, settings):
     assert r.status_code == 409
     [channel] = channels(session)
     assert channel.organization.slug == "org-a"
+
+
+@respx.mock
+def test_callback_accepts_state_signed_two_days_ago(client, session, settings, monkeypatch):
+    make_org(session)
+    mock_oauth()
+    real_time = time.time
+    with monkeypatch.context() as m:
+        m.setattr(time, "time", lambda: real_time() - 2 * 86400)
+        state = sign_state(settings, "test-org")
+
+    r = client.get(CALLBACK, params={"code": "CODE", "state": state})
+
+    assert r.status_code == 200
+    assert len(channels(session)) == 1
+
+
+@respx.mock
+def test_callback_rejects_state_older_than_configured_max_age(client, session, settings, monkeypatch):
+    make_org(session)
+    mock_oauth()
+    real_time = time.time
+    with monkeypatch.context() as m:
+        m.setattr(time, "time", lambda: real_time() - 4 * 86400)
+        state = sign_state(settings, "test-org")
+
+    r = client.get(CALLBACK, params={"code": "CODE", "state": state})
+
+    assert settings.oauth_state_max_age == 259200
+    assert r.status_code == 400
+    assert channels(session) == []
 
 
 def test_bad_state_400(client, session):

@@ -100,7 +100,7 @@ def callback(
     if not code or not state:
         return _page("잘못된 요청입니다. 연결 링크로 다시 시도하세요.", 400)
     try:
-        slug = verify_state(settings, state)
+        slug = verify_state(settings, state, max_age=settings.oauth_state_max_age)
     except InvalidState:
         return _page("유효하지 않거나 만료된 연결 링크입니다. 새 연결 링크를 받아 다시 시도하세요.", 400)
 
