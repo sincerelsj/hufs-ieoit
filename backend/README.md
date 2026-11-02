@@ -16,5 +16,8 @@ cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 pytest -q
+python -m app.cli seed   # 테이블 생성 + 기본 조직 3개
 uvicorn app.main:app --reload   # http://localhost:8000/docs
 ```
+
+`uvicorn`은 테이블을 만들지 않으므로, API를 처음 실행하기 전에 `seed`를 한 번 실행해야 합니다(여러 번 실행해도 안전합니다).
