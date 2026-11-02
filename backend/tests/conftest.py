@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app import models  # noqa: F401  (Base.metadata에 테이블 등록)
 from app.config import Settings, get_settings
 from app.db import Base, get_session
 from app.main import create_app
