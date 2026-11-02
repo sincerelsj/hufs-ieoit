@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "id": "17900000000000004",
+      "caption": "더미 캡션 4 (릴스, media_url 없음)",
+      "media_type": "VIDEO",
+      "thumbnail_url": "https://cdn.example.test/media/17900000000000004_thumb.jpg",
+      "permalink": "https://www.instagram.com/reel/DUMMY0004/",
+      "timestamp": "2026-10-10T09:30:00+0000",
+      "username": "dummy_account"
+    },
+    {
+      "id": "17900000000000005",
+      "media_type": "IMAGE",
+      "media_url": "https://cdn.example.test/media/17900000000000005.jpg",
+      "permalink": "https://www.instagram.com/p/DUMMY0005/",
+      "timestamp": "2026-10-01T00:00:00+0000",
+      "username": "dummy_account"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "DUMMYCURSORBEFORE2",
+      "after": "DUMMYCURSORAFTER2"
+    }
+  }
+}

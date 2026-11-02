@@ -1,0 +1,58 @@
+{
+  "data": [
+    {
+      "id": "17900000000000001",
+      "caption": "더미 캡션 1\n#더미해시태그",
+      "media_type": "IMAGE",
+      "media_url": "https://cdn.example.test/media/17900000000000001.jpg",
+      "permalink": "https://www.instagram.com/p/DUMMY0001/",
+      "timestamp": "2026-11-01T08:14:43+0000",
+      "username": "dummy_account"
+    },
+    {
+      "id": "17900000000000002",
+      "caption": "더미 캡션 2 (캐러셀)",
+      "media_type": "CAROUSEL_ALBUM",
+      "media_url": "https://cdn.example.test/media/17900000000000002.jpg",
+      "permalink": "https://www.instagram.com/p/DUMMY0002/",
+      "timestamp": "2026-10-28T03:20:10+0000",
+      "username": "dummy_account",
+      "children": {
+        "data": [
+          {
+            "id": "17900000000000021",
+            "media_type": "IMAGE",
+            "media_url": "https://cdn.example.test/media/17900000000000021.jpg"
+          },
+          {
+            "id": "17900000000000022",
+            "media_type": "VIDEO",
+            "media_url": "https://cdn.example.test/media/17900000000000022.mp4",
+            "thumbnail_url": "https://cdn.example.test/media/17900000000000022_thumb.jpg"
+          },
+          {
+            "id": "17900000000000023",
+            "media_type": "IMAGE",
+            "media_url": "https://cdn.example.test/media/17900000000000023.jpg"
+          }
+        ]
+      }
+    },
+    {
+      "id": "17900000000000003",
+      "caption": "더미 캡션 3",
+      "media_type": "IMAGE",
+      "media_url": "https://cdn.example.test/media/17900000000000003.jpg",
+      "permalink": "https://www.instagram.com/p/DUMMY0003/",
+      "timestamp": "2026-10-20T11:05:00+0000",
+      "username": "dummy_account"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "DUMMYCURSORBEFORE1",
+      "after": "DUMMYCURSORAFTER1"
+    },
+    "next": "https://graph.instagram.com/v26.0/17800000000000000/media?access_token=DUMMY_TOKEN&limit=3&after=DUMMYCURSORAFTER1"
+  }
+}
