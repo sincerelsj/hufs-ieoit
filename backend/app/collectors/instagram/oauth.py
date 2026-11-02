@@ -38,7 +38,11 @@ def build_connect_url(settings: Settings, org_slug: str) -> str:
 def connect_channel(
     session: Session, settings: Settings, org: Organization, token: TokenInfo, me: dict
 ) -> Channel:
-    """계정을 조직에 연결한다. flush만 하고 commit은 호출자가 한다."""
+    """계정을 조직에 연결한다. flush만 하고 commit은 호출자가 한다.
+
+    같은 조직의 기존 채널은 상태(needs_reauth·disconnected 등)와 상관없이 다시 활성화한다.
+    다른 조직에 연결된 계정은 상태와 상관없이 ChannelConflict.
+    """
     external_user_id = str(me["user_id"])
     channel = session.scalar(
         select(Channel).where(

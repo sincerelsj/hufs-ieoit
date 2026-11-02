@@ -150,25 +150,31 @@ def delete_channel(
     session: Session = Depends(get_session),
     storage: MediaStorage = Depends(get_storage),
 ) -> PurgeResult:
-    """채널 연결을 지운다. purge=true면 그 채널 게시물과 미디어 파일도 지운다(운영자 요청 시 기록 삭제)."""
+    """채널 연결을 끊는다.
+
+    purge=false(기본): 채널 행은 남기고 status="disconnected"로 바꾼 뒤 토큰을 지운다. 게시물은 그대로
+    channel_id를 유지하므로 나중에 purge=true로 기록을 지울 수 있다.
+    purge=true: 그 채널 게시물·미디어 파일·채널 행을 모두 지운다(운영자 요청 시 기록 삭제).
+    """
     channel = session.get(Channel, channel_id)
     if channel is None:
         raise HTTPException(404, "존재하지 않는 채널입니다.")
+    if not purge:
+        channel.status = "disconnected"
+        channel.access_token_enc = None
+        channel.token_expires_at = None
+        session.commit()
+        return PurgeResult(deleted_posts=0)
     posts = list(session.scalars(select(Post).where(Post.channel_id == channel.id)))
-    if purge:
-        # 파일을 먼저 지운다. 도중에 실패해도 DB는 그대로라 다시 시도할 수 있다(없는 키 삭제는 무시됨).
-        for post in posts:
-            for media in post.media:
-                for key in (media.storage_key, media.thumbnail_key):
-                    if key:
-                        storage.delete(key)
-        for post in posts:
-            session.delete(post)  # PostMedia는 cascade로 함께 삭제된다.
-    else:
-        # SQLite는 ON DELETE SET NULL을 강제하지 않으므로 직접 끊는다.
-        for post in posts:
-            post.channel_id = None
+    # 파일을 먼저 지운다. 도중에 실패해도 DB는 그대로라 다시 시도할 수 있다(없는 키 삭제는 무시됨).
+    for post in posts:
+        for media in post.media:
+            for key in (media.storage_key, media.thumbnail_key):
+                if key:
+                    storage.delete(key)
+    for post in posts:
+        session.delete(post)  # PostMedia는 cascade로 함께 삭제된다.
     session.flush()
     session.delete(channel)
     session.commit()
-    return PurgeResult(deleted_posts=len(posts) if purge else 0)
+    return PurgeResult(deleted_posts=len(posts))

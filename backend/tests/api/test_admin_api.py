@@ -308,19 +308,46 @@ def test_delete_channel_purge(client, session, make_org, make_post, storage, adm
             storage.open(f"instagram/council/{key}")
 
 
-def test_delete_channel_without_purge_keeps_posts(client, session, make_org, make_post, storage, admin):
+def test_delete_channel_without_purge_disconnects_and_keeps_posts(
+    client, session, make_org, make_post, storage, admin
+):
     channel, post, _ = _channel_with_posts(session, make_org, make_post, storage)
+    channel.access_token_enc = "dummy-encrypted"
+    channel.token_expires_at = utc(2026, 12, 1)
+    session.commit()
     channel_id, post_id = channel.id, post.id
     r = client.delete(f"/admin/channels/{channel_id}", headers=admin)
     assert r.status_code == 200
     assert r.json() == {"deleted_posts": 0}
     session.expire_all()
-    assert session.get(Channel, channel_id) is None
+    kept_channel = session.get(Channel, channel_id)
+    assert kept_channel is not None
+    assert kept_channel.status == "disconnected"
+    assert kept_channel.access_token_enc is None
+    assert kept_channel.token_expires_at is None
     kept = session.get(Post, post_id)
     assert kept is not None
-    assert kept.channel_id is None
+    assert kept.channel_id == channel_id
     assert len(kept.media) == 3
     assert storage.open("instagram/council/a.jpg") == b"data"
+
+
+def test_purge_after_disconnect_deletes_records(client, session, make_org, make_post, storage, admin):
+    channel, post, other = _channel_with_posts(session, make_org, make_post, storage)
+    channel_id, post_id, other_id = channel.id, post.id, other.id
+    assert client.delete(f"/admin/channels/{channel_id}", headers=admin).status_code == 200
+
+    r = client.delete(f"/admin/channels/{channel_id}?purge=true", headers=admin)
+
+    assert r.status_code == 200
+    assert r.json() == {"deleted_posts": 1}
+    session.expire_all()
+    assert session.get(Channel, channel_id) is None
+    assert session.get(Post, post_id) is None
+    assert session.get(Post, other_id) is not None
+    assert session.scalars(select(PostMedia)).all() == []
+    with pytest.raises(FileNotFoundError):
+        storage.open("instagram/council/a.jpg")
 
 
 def test_delete_channel_unknown_404(client, storage, admin):

@@ -429,6 +429,22 @@ def test_sync_all_filters_org_and_skips_inactive(session, settings, ig, storage,
 
 
 @respx.mock
+def test_sync_all_skips_disconnected_channel(session, settings, ig, storage, http, page2):
+    make_channel(session, settings, slug="org-a", handle="dummy_a", ext_id="1")
+    gone = make_channel(session, settings, slug="org-b", handle="dummy_b", ext_id="2")
+    gone.status = "disconnected"
+    gone.access_token_enc = None
+    gone.token_expires_at = None
+    session.commit()
+    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page2))
+    mock_cdn()
+
+    assert set(sync_all(session, ig, storage, http, settings)) == {"dummy_a"}
+    session.refresh(gone)
+    assert gone.status == "disconnected"
+
+
+@respx.mock
 def test_sync_all_survives_unexpected_exception(session, settings, ig, http, page2):
     make_channel(session, settings, slug="org-a", handle="dummy_a", ext_id="1")
     make_channel(session, settings, slug="org-b", handle="dummy_b", ext_id="2")

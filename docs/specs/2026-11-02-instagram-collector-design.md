@@ -208,17 +208,17 @@ backend/
 | GET | `/organizations` | 조직 목록 |
 | GET | `/organizations/{slug}/years` | 학년도별 게시물 수 |
 | GET | `/organizations/{slug}/archive?academic_year=2026` | 임기별로 묶은 게시물 + 임기 미지정 |
-| GET | `/media/{key}` | (로컬 저장소일 때만) 미디어 파일 |
+| GET | `/media/{key}` | 저장소에서 읽어 전달하는 미디어 파일 |
 | POST | `/admin/organizations` | 조직 생성 |
 | POST/PATCH/DELETE | `/admin/organizations/{slug}/terms[/{id}]` | 임기 관리 (재배정 실행) |
 | PATCH | `/admin/posts/{id}` | 게시물 임기 수동 지정·고정 |
 | GET | `/admin/organizations/{slug}/instagram/connect-url` | 연결 링크 발급 |
-| DELETE | `/admin/channels/{id}?purge=true` | 채널 연결 삭제, purge면 그 채널 게시물·미디어 파일도 삭제 (운영자 요청 시 기록 삭제) |
+| DELETE | `/admin/channels/{id}[?purge=true]` | 기본: 채널 행은 남기고 `disconnected`로 바꾸며 토큰을 지운다(게시물은 그대로 채널에 연결, 이후 purge 가능). `purge=true`: 그 채널 게시물·미디어 파일·채널 행을 모두 삭제 (운영자 요청 시 기록 삭제). 같은 조직이 같은 계정을 다시 연결하면 `active`로 복구된다 |
 | GET | `/integrations/instagram/callback` | OAuth 콜백 |
 
 ## 9. 환경변수 (`.env.example`에 이름만 추가)
 
-`INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_REDIRECT_URI`, `INSTAGRAM_API_VERSION`, `TOKEN_ENCRYPTION_KEY`, `STATE_SECRET`, `ADMIN_TOKEN`, `MEDIA_STORAGE`(`local`|`ncp`), `MEDIA_LOCAL_DIR`(기본 `data/raw/media`, gitignore), `NCP_OBJECT_STORAGE_ENDPOINT`
+`INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_REDIRECT_URI`, `INSTAGRAM_API_VERSION`, `TOKEN_ENCRYPTION_KEY`, `STATE_SECRET`, `OAUTH_STATE_MAX_AGE`(초, 기본 259200=72시간), `ADMIN_TOKEN`, `MEDIA_STORAGE`(`local`|`ncp`), `MEDIA_LOCAL_DIR`(기본 `data/raw/media`, gitignore), `NCP_OBJECT_STORAGE_ENDPOINT`
 
 ## 10. 테스트
 

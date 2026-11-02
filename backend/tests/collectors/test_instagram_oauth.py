@@ -119,6 +119,49 @@ def test_reconnect_reactivates_needs_reauth(client, session, settings):
 
 
 @respx.mock
+def test_reconnect_after_disconnect_reactivates_in_same_org(client, session, settings):
+    make_org(session)
+    mock_oauth(long_token="L1")
+    assert callback(client, settings).status_code == 200
+    [channel] = channels(session)
+    channel.status = "disconnected"
+    channel.access_token_enc = None
+    channel.token_expires_at = None
+    session.commit()
+    channel_id = channel.id
+    mock_oauth(long_token="L2", username="renamed_account")
+
+    assert callback(client, settings).status_code == 200
+
+    session.expire_all()
+    [channel] = channels(session)
+    assert channel.id == channel_id
+    assert channel.status == "active"
+    assert channel.handle == "renamed_account"
+    assert decrypt_token(settings, channel.access_token_enc) == "L2"
+    assert channel.token_expires_at is not None
+
+
+@respx.mock
+def test_disconnected_channel_in_other_org_conflict(client, session, settings):
+    make_org(session, "org-a")
+    make_org(session, "org-b")
+    mock_oauth()
+    assert callback(client, settings, slug="org-a").status_code == 200
+    [channel] = channels(session)
+    channel.status = "disconnected"
+    channel.access_token_enc = None
+    session.commit()
+
+    r = callback(client, settings, slug="org-b")
+
+    assert r.status_code == 409
+    [channel] = channels(session)
+    assert channel.organization.slug == "org-a"
+    assert channel.status == "disconnected"
+
+
+@respx.mock
 def test_same_account_other_org_conflict(client, session, settings):
     make_org(session, "org-a")
     make_org(session, "org-b")
