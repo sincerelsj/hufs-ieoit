@@ -1,0 +1,17 @@
+name: 📋 작업
+description: 문서, 설정, 데이터 수집, 조사 등 기능이 아닌 작업
+title: "[Task] "
+labels: ["task"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 할 일
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 조건
+      value: |
+        - [ ] 

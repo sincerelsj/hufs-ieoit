@@ -1,0 +1,39 @@
+name: 🐞 버그 리포트
+description: QA·테스트 중 발견한 문제
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options: [FE, BE, AI, infra, 모름]
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 우선순위
+      options: ["P0 - 데모 불가", "P1 - 주요 기능 오류", "P2 - 사소함"]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 방법
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과 / 실제 결과
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: 환경 (브라우저, 기기, 브랜치/커밋, 스크린샷)

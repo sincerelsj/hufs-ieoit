@@ -1,0 +1,39 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# data
+data/raw/
+data/private/
+*.db
+*.sqlite3
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# 대회 서류 (개인정보 포함)
+*.docx
+*.hwp
+*.hwpx
