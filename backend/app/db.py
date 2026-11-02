@@ -27,6 +27,11 @@ def _get_session_factory() -> sessionmaker[Session]:
     return _session_factory
 
 
+def get_session_factory() -> sessionmaker[Session]:
+    """요청 밖(백그라운드 작업)에서 자기 Session을 열어야 할 때 쓰는 의존성."""
+    return _get_session_factory()
+
+
 def get_session() -> Iterator[Session]:
     with _get_session_factory()() as session:
         yield session

@@ -1,11 +1,13 @@
 import argparse
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.collectors.instagram.client import InstagramClient
+from app.collectors.instagram.oauth import refresh_expiring
 from app.collectors.instagram.sync import sync_all
 from app.config import get_settings
 from app.db import Base, make_engine
@@ -87,9 +89,29 @@ def _cmd_sync_instagram(args: argparse.Namespace) -> int:
     return 1 if any(r.error for r in results.values()) else 0
 
 
+def _cmd_refresh_tokens(_args: argparse.Namespace) -> int:
+    settings = get_settings()
+    engine = make_engine(settings.database_url)
+    try:
+        Base.metadata.create_all(engine)
+        with Session(engine) as session, httpx.Client(timeout=30) as http:
+            client = InstagramClient(
+                http,
+                settings.instagram_app_id,
+                settings.instagram_app_secret,
+                settings.instagram_api_version,
+            )
+            count = refresh_expiring(session, client, settings, now=datetime.now(UTC))
+    finally:
+        engine.dispose()
+    print(f"토큰 {count}개 갱신")
+    return 0
+
+
 COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "seed": _cmd_seed,
     "sync-instagram": _cmd_sync_instagram,
+    "refresh-tokens": _cmd_refresh_tokens,
 }
 
 
@@ -100,6 +122,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync = subparsers.add_parser("sync-instagram", help="연결된 Instagram 채널의 게시물을 수집한다")
     sync.add_argument("--org", help="이 조직 slug의 채널만 동기화한다")
     sync.add_argument("--full", action="store_true", help="끝까지 훑어 수정·실패한 미디어를 반영한다")
+    subparsers.add_parser("refresh-tokens", help="만료가 10일 이내인 Instagram 토큰을 갱신한다 (하루 1회 cron)")
     return parser
 
 

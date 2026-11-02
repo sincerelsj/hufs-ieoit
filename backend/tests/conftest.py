@@ -4,12 +4,12 @@ import pytest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import models  # noqa: F401  (Base.metadata에 테이블 등록)
 from app.config import Settings, get_settings
-from app.db import Base, get_session
+from app.db import Base, get_session, get_session_factory
 from app.main import create_app
 
 
@@ -47,6 +47,8 @@ def session() -> Iterator[Session]:
 def client(session: Session, settings: Settings) -> Iterator[TestClient]:
     app = create_app(settings)
     app.dependency_overrides[get_session] = lambda: session
+    # 백그라운드 작업이 자기 Session을 열어도 같은 인메모리 DB를 쓰게 한다.
+    app.dependency_overrides[get_session_factory] = lambda: sessionmaker(bind=session.get_bind())
     app.dependency_overrides[get_settings] = lambda: settings
     with TestClient(app) as c:
         yield c
