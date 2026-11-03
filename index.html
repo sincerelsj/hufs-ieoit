@@ -7,129 +7,258 @@
 <meta name="description" content="HUFS 이어:잇 — AI 기반 학내 활동 기록 및 인수인계 아카이빙 플랫폼 계획 요약">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@600;800&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: 한 단 요약 문서. 히어로의 '실'이 기수를 잇고, 아래는 문제 → 해결 → 구조 → 일정 → 팀 순서. */
+/* Layout: 한 단 요약. 히어로는 '지금 vs 이어:잇 이후' 비교 그림, 이후 근거 → 현황 → 기능 → 구조 → 일정 → 팀. 겨자색 실 = 이어지는 기록. */
 :root {
-  --bg: #f6f7f9; --surface: #ffffff; --ink: #17202e; --muted: #5a6577; --line: #dde2ea;
-  --accent: #1f5f8b; --thread: #d9a21b;
-  --ok: #1d7a55; --ok-bg: #e3f3eb; --todo: #9a6206; --todo-bg: #fbf0d9;
+  --bg: #f4f6f9; --surface: #ffffff; --ink: #142033; --muted: #5b677a; --line: #dbe1ea;
+  --accent: #1f5f8b; --accent-soft: #e4eef6; --thread: #d39a12;
+  --faded: #a3acb9; --faded-bg: #eceff3; --broken: #c2513f;
+  --ok: #1d7a55; --ok-bg: #e2f3ea; --todo: #96600a; --todo-bg: #fbf0d8;
   --f-display: "Gothic A1", "Noto Sans KR", system-ui, sans-serif;
   --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #11161e; --surface: #18202b; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3443;
-  --accent: #6fb0de; --thread: #e8b73c; --ok: #6fd3a5; --ok-bg: #173327; --todo: #f0c26a; --todo-bg: #3a2c12;
+  --bg: #0f141c; --surface: #171f2a; --ink: #e7ecf3; --muted: #9ba7b9; --line: #29333f;
+  --accent: #72b2df; --accent-soft: #1a2c3d; --thread: #e7b53a;
+  --faded: #5d6878; --faded-bg: #1d242f; --broken: #e27a68;
+  --ok: #6fd3a5; --ok-bg: #163126; --todo: #f0c26a; --todo-bg: #382a11;
   color-scheme: dark } }
 :root[data-theme="dark"] {
-  --bg: #11161e; --surface: #18202b; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3443;
-  --accent: #6fb0de; --thread: #e8b73c; --ok: #6fd3a5; --ok-bg: #173327; --todo: #f0c26a; --todo-bg: #3a2c12;
+  --bg: #0f141c; --surface: #171f2a; --ink: #e7ecf3; --muted: #9ba7b9; --line: #29333f;
+  --accent: #72b2df; --accent-soft: #1a2c3d; --thread: #e7b53a;
+  --faded: #5d6878; --faded-bg: #1d242f; --broken: #e27a68;
+  --ok: #6fd3a5; --ok-bg: #163126; --todo: #f0c26a; --todo-bg: #382a11;
   color-scheme: dark }
 
+* { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
-main { max-width: 880px; margin: 0 auto; padding-block: 40px 72px;
+.wrap { max-width: 960px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
-.meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
-h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(32px, 6vw, 48px); line-height: 1.15; margin: 12px 0 8px; letter-spacing: -.01em; }
+/* 히어로 */
+.hero { background: var(--surface); border-bottom: 1px solid var(--line); }
+.hero .wrap { padding-block: 44px 36px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(34px, 6vw, 54px); line-height: 1.1; margin: 10px 0 10px; letter-spacing: -.015em; }
 h1 .colon { color: var(--thread); }
-.lede { font-size: 17px; max-width: 60ch; margin: 0 0 12px; }
-.quote { font-family: var(--f-display); font-weight: 600; color: var(--accent); margin: 0; }
+.lede { font-size: 17px; max-width: 58ch; margin: 0; color: var(--ink); }
+.quote { font-family: var(--f-display); font-weight: 600; color: var(--accent); margin: 10px 0 0; }
 
-.thread { margin: 24px 0 0; overflow-x: auto; }
-.thread svg { display: block; min-width: 540px; width: 100%; height: auto; }
-.t-line { stroke: var(--thread); stroke-width: 3; fill: none; }
-.t-knot { fill: var(--surface); stroke: var(--thread); stroke-width: 3; }
-.t-lbl { fill: var(--ink); font: 600 13px var(--f-body); }
-.t-sub { fill: var(--muted); font: 400 11px var(--f-mono); }
-.t-arch { fill: var(--accent); }
-.t-arch-txt { fill: var(--surface); font: 700 12px var(--f-body); }
+.compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 28px; }
+.panel { border-radius: 12px; padding: 14px 14px 10px; border: 1px solid var(--line); min-width: 0; }
+.panel.before { background: var(--faded-bg); }
+.panel.after { background: var(--accent-soft); border-color: transparent; }
+.panel .tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 500; }
+.panel.before .tag { color: var(--muted); }
+.panel.after .tag { color: var(--accent); }
+.panel h3 { font-family: var(--f-display); font-size: 17px; margin: 2px 0 6px; }
+.panel svg { display: block; width: 100%; height: auto; }
 
-section { padding-top: 44px; }
-h2 { font-family: var(--f-display); font-weight: 800; font-size: 22px; margin: 0 0 14px; text-wrap: balance; }
-p { max-width: 66ch; }
+/* SVG 공통 */
+.c-card { fill: var(--surface); stroke: var(--faded); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.c-title { fill: var(--muted); font: 700 14px var(--f-body); }
+.c-frag { fill: var(--faded); font: 400 11px var(--f-body); }
+.c-q { fill: var(--broken); font: 800 18px var(--f-display); }
+.c-gap { stroke: var(--faded); stroke-width: 2; stroke-dasharray: 3 6; fill: none; }
+.c-x { stroke: var(--broken); stroke-width: 2.5; stroke-linecap: round; }
+.a-thread { stroke: var(--thread); stroke-width: 3.5; fill: none; stroke-linecap: round; }
+.a-knot { fill: var(--surface); stroke: var(--thread); stroke-width: 3; }
+.a-lbl { fill: var(--ink); font: 700 13px var(--f-body); }
+.a-sub { fill: var(--muted); font: 400 10.5px var(--f-mono); }
+.a-box { fill: var(--accent); }
+.a-box-txt { fill: var(--surface); font: 700 12px var(--f-body); }
+.a-search { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+.a-search-txt { fill: var(--ink); font: 400 11.5px var(--f-body); }
+.a-icon { stroke: var(--accent); stroke-width: 2; fill: none; stroke-linecap: round; }
+.a-chip { fill: var(--surface); }
+.a-chip-txt { fill: var(--accent); font: 700 11px var(--f-body); }
+
+main.wrap { padding-block: 8px 72px; }
+section { padding-top: 48px; }
+.kicker { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--thread); margin: 0 0 4px; }
+h2 { font-family: var(--f-display); font-weight: 800; font-size: 24px; margin: 0 0 16px; text-wrap: balance; }
 .muted { color: var(--muted); font-size: 13px; }
 
-.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-.box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; min-width: 0; }
-.box h3 { font-family: var(--f-mono); font-weight: 500; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
-.box ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 6px; align-content: start; min-width: 0; }
 
-.features { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-.features li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
-.features strong { font-family: var(--f-display); font-size: 16px; }
-.features span.d { font-size: 13px; color: var(--muted); }
-.pill { justify-self: start; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; }
+.fact .big { font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.fact p { margin: 0; font-size: 14px; }
+
+.status-row { display: grid; gap: 10px; }
+.acct { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; }
+.acct .nm { font-weight: 700; }
+.acct .h { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.acct .n { font-family: var(--f-display); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; text-align: right; }
+.acct .n small { font: 400 12px var(--f-body); color: var(--muted); margin-left: 2px; }
+.acct .bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--faded-bg); overflow: hidden; }
+.acct .bar i { display: block; height: 100%; background: var(--thread); border-radius: 3px; }
+.pill { justify-self: start; font-size: 12px; font-weight: 700; padding: 1px 10px; border-radius: 999px; white-space: nowrap; }
 .pill.ok { background: var(--ok-bg); color: var(--ok); }
 .pill.todo { background: var(--todo-bg); color: var(--todo); }
 
-.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin: 12px 0; overflow-x: auto; }
+.feat svg { width: 28px; height: 28px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.feat strong { font-family: var(--f-display); font-size: 16px; }
+.feat span.d { font-size: 13px; color: var(--muted); }
+
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; overflow-x: auto; }
 pre.mermaid { margin: 0; background: transparent; text-align: center; font-family: var(--f-body); }
 
-.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-family: var(--f-mono); font-weight: 500; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
-tr:last-child td { border-bottom: 0; }
-td.when { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--accent); }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; position: relative; }
+.steps li { position: relative; padding: 26px 12px 0 0; min-width: 0; }
+.steps li::before { content: ""; position: absolute; top: 8px; left: 0; right: 0; height: 3px; background: var(--line); }
+.steps li.done::before, .steps li.now::before { background: var(--thread); }
+.steps li::after { content: ""; position: absolute; top: 2px; left: 0; width: 15px; height: 15px; border-radius: 50%; background: var(--surface); border: 3px solid var(--line); }
+.steps li.done::after { background: var(--thread); border-color: var(--thread); }
+.steps li.now::after { border-color: var(--thread); }
+.steps .when { font-family: var(--f-mono); font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.steps strong { display: block; font-family: var(--f-display); font-size: 16px; margin: 2px 0; }
+.steps span.d { font-size: 13px; color: var(--muted); display: block; }
 
-.team { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-.member { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 2px; }
-.member .role { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
-.member .name { font-family: var(--f-display); font-weight: 800; font-size: 18px; }
-.member .bg { font-size: 13px; color: var(--muted); }
+.member { flex-direction: row; display: flex; gap: 12px; align-items: center; }
+.avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 16px; }
+.member .role { font-family: var(--f-mono); font-size: 11px; letter-spacing: .04em; color: var(--accent); }
+.member .name { font-family: var(--f-display); font-weight: 800; font-size: 17px; line-height: 1.3; }
+.member .bg { font-size: 12.5px; color: var(--muted); }
 
 footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
-footer a { color: var(--accent); }
+code { font-family: var(--f-mono); font-size: .9em; }
+
+@media (max-width: 680px) {
+  .compare { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .steps li { padding: 0 0 0 28px; }
+  .steps li::before { top: 0; bottom: -14px; left: 6px; right: auto; width: 3px; height: auto; }
+  .steps li:last-child::before { display: none; }
+  .steps li::after { top: 4px; }
+}
 </style>
 </head>
 <body>
 
-<main>
-  <header>
-    <div class="meta"><span>프로젝트 계획 요약</span><span>2026-11-03</span><span>2026 AI 캠퍼스: 바이브코딩 경진대회</span></div>
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow"><span>프로젝트 계획 요약</span><span>2026-11-03</span><span>2026 AI 캠퍼스: 바이브코딩 경진대회</span></div>
     <h1>HUFS 이어<span class="colon">:</span>잇</h1>
-    <p class="lede">학생회·학과 사무실의 활동 기록을 자동으로 모아 조직·학년도·임기별로 정리하고, HyperCLOVA X로 검색과 인수인계를 돕는 아카이빙 플랫폼입니다.</p>
+    <p class="lede">학생회·학과 사무실의 활동 기록을 자동으로 모아 조직·학년도·임기별로 정리하고, HyperCLOVA X로 검색과 인수인계를 돕습니다.</p>
     <p class="quote">“사람은 매년 바뀌지만, 대학의 경험까지 매년 초기화될 필요는 없다.”</p>
-    <div class="thread" aria-label="학생회 기수가 바뀌어도 기록이 하나의 아카이브로 이어지는 모습">
-      <svg viewBox="0 0 760 120" role="img">
-        <path class="t-line" d="M20 60 C 120 20, 160 100, 250 60 S 390 20, 460 60 S 580 100, 640 60"/>
-        <circle class="t-knot" cx="110" cy="44" r="8"/>
-        <circle class="t-knot" cx="290" cy="50" r="8"/>
-        <circle class="t-knot" cx="470" cy="62" r="8"/>
-        <text class="t-lbl" x="110" y="92" text-anchor="middle">제36대</text>
-        <text class="t-sub" x="110" y="108" text-anchor="middle">2024학년도</text>
-        <text class="t-lbl" x="290" y="92" text-anchor="middle">제37대</text>
-        <text class="t-sub" x="290" y="108" text-anchor="middle">2025학년도</text>
-        <text class="t-lbl" x="470" y="92" text-anchor="middle">제38대</text>
-        <text class="t-sub" x="470" y="108" text-anchor="middle">2026학년도</text>
-        <rect class="t-arch" x="640" y="40" width="110" height="40" rx="6"/>
-        <text class="t-arch-txt" x="695" y="65" text-anchor="middle">이어:잇 아카이브</text>
-      </svg>
-    </div>
-  </header>
 
-  <section>
-    <h2>문제와 해결</h2>
-    <div class="pair">
-      <div class="box"><h3>지금</h3>
-        <ul><li>학생회·조교가 학기나 1년마다 바뀐다</li><li>기록이 인스타·홈페이지·개인 PC·카톡에 흩어져 있다</li><li>신임자는 같은 시행착오를 반복한다</li></ul></div>
-      <div class="box"><h3>이어:잇 도입 후</h3>
-        <ul><li>지금처럼 인스타를 운영하면 기록이 자동으로 쌓인다</li><li>조직 → 학년도 → 임기 순서로 정리된다</li><li>신임자는 검색하고, 인수인계 문서 초안을 받는다</li></ul></div>
+    <div class="compare">
+      <figure class="panel before" style="margin:0">
+        <span class="tag">지금</span>
+        <h3>이전 기수 기록은 찾기 어렵다</h3>
+        <svg viewBox="0 0 400 230" role="img" aria-label="제26대부터 제28대까지 기록이 카톡방, 개인 PC, 인스타 일부로 흩어지고 서로 끊겨 있는 모습">
+          <!-- 끊긴 연결 -->
+          <path class="c-gap" d="M112 92 L150 104"/>
+          <path class="c-gap" d="M246 104 L284 92"/>
+          <line class="c-x" x1="124" y1="90" x2="136" y2="104"/><line class="c-x" x1="136" y1="90" x2="124" y2="104"/>
+          <line class="c-x" x1="260" y1="90" x2="272" y2="104"/><line class="c-x" x1="272" y1="90" x2="260" y2="104"/>
+          <!-- 제26대: 가장 흐림 -->
+          <g opacity=".4" transform="rotate(-4 60 100)">
+            <rect class="c-card" x="10" y="40" width="102" height="120" rx="8"/>
+            <text class="c-title" x="61" y="66" text-anchor="middle">제26대</text>
+            <text class="c-frag" x="61" y="92" text-anchor="middle">카톡방 나감</text>
+            <text class="c-frag" x="61" y="110" text-anchor="middle">USB 분실</text>
+            <text class="c-frag" x="61" y="128" text-anchor="middle">게시물 삭제</text>
+          </g>
+          <!-- 제27대 -->
+          <g opacity=".65" transform="rotate(3 200 110)">
+            <rect class="c-card" x="148" y="48" width="102" height="120" rx="8"/>
+            <text class="c-title" x="199" y="74" text-anchor="middle">제27대</text>
+            <text class="c-frag" x="199" y="100" text-anchor="middle">개인 PC</text>
+            <text class="c-frag" x="199" y="118" text-anchor="middle">구글 드라이브</text>
+            <text class="c-frag" x="199" y="136" text-anchor="middle">권한 만료</text>
+          </g>
+          <!-- 제28대 -->
+          <g opacity=".9" transform="rotate(-2 340 100)">
+            <rect class="c-card" x="286" y="40" width="102" height="120" rx="8"/>
+            <text class="c-title" x="337" y="66" text-anchor="middle">제28대</text>
+            <text class="c-frag" x="337" y="92" text-anchor="middle">인스타 최근 12개</text>
+            <text class="c-frag" x="337" y="110" text-anchor="middle">카톡 공지</text>
+            <text class="c-frag" x="337" y="128" text-anchor="middle">인수인계 구두</text>
+          </g>
+          <text class="c-q" x="96" y="36">?</text>
+          <text class="c-q" x="236" y="42">?</text>
+          <text class="c-frag" x="200" y="210" text-anchor="middle">신임자: “작년엔 축제 준비를 어떻게 했지?”</text>
+        </svg>
+      </figure>
+
+      <figure class="panel after" style="margin:0">
+        <span class="tag">이어:잇 이후</span>
+        <h3>한 줄로 이어지고, 바로 찾는다</h3>
+        <svg viewBox="0 0 400 230" role="img" aria-label="제26대부터 제28대까지 기록이 하나의 실로 이어져 아카이브에 쌓이고, 검색하면 해당 기수의 기록과 인수인계 문서가 나오는 모습">
+          <path class="a-thread" d="M14 78 C 60 50, 90 50, 70 78 S 130 106, 160 78 S 230 50, 250 78 S 300 100, 316 78"/>
+          <circle class="a-knot" cx="70" cy="78" r="8"/>
+          <circle class="a-knot" cx="160" cy="78" r="8"/>
+          <circle class="a-knot" cx="250" cy="78" r="8"/>
+          <text class="a-lbl" x="70" y="112" text-anchor="middle">제26대</text>
+          <text class="a-sub" x="70" y="126" text-anchor="middle">게시물·공지</text>
+          <text class="a-lbl" x="160" y="112" text-anchor="middle">제27대</text>
+          <text class="a-sub" x="160" y="126" text-anchor="middle">게시물·공지</text>
+          <text class="a-lbl" x="250" y="112" text-anchor="middle">제28대</text>
+          <text class="a-sub" x="250" y="126" text-anchor="middle">게시물·공지</text>
+          <rect class="a-box" x="318" y="52" width="72" height="52" rx="8"/>
+          <text class="a-box-txt" x="354" y="75" text-anchor="middle">이어:잇</text>
+          <text class="a-box-txt" x="354" y="91" text-anchor="middle">아카이브</text>
+          <!-- 검색 -->
+          <rect class="a-search" x="14" y="148" width="372" height="32" rx="16"/>
+          <circle class="a-icon" cx="34" cy="163" r="6"/><line class="a-icon" x1="38.5" y1="167.5" x2="43" y2="172"/>
+          <text class="a-search-txt" x="52" y="168">작년 축제 준비는 어떻게 했지?</text>
+          <rect class="a-chip" x="14" y="192" width="118" height="26" rx="13"/>
+          <text class="a-chip-txt" x="73" y="209" text-anchor="middle">제27대 · 관련 게시물</text>
+          <rect class="a-chip" x="140" y="192" width="104" height="26" rx="13"/>
+          <text class="a-chip-txt" x="192" y="209" text-anchor="middle">AI 요약 타임라인</text>
+          <rect class="a-chip" x="252" y="192" width="134" height="26" rx="13"/>
+          <text class="a-chip-txt" x="319" y="209" text-anchor="middle">인수인계 문서 초안</text>
+        </svg>
+      </figure>
     </div>
-    <p class="muted">근거: 미디어커뮤니케이션학부 3개 계정 34개 게시물 분석. 공개 화면에는 최근 약 12개만 보이고, 조교 연락처가 학기마다 바뀌며, 핵심 공지가 카드뉴스 이미지 안에 있다.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <p class="kicker">Why</p>
+    <h2>미디어커뮤니케이션학부 계정에서 확인한 것</h2>
+    <div class="grid">
+      <div class="card fact"><span class="big">약 12개</span><p>로그아웃 화면에서 보이는 최근 게시물 수. 그 이전 기록은 공개 화면으로 볼 수 없습니다.</p></div>
+      <div class="card fact"><span class="big">매 학기</span><p>실습실 공지의 조교 연락처가 바뀝니다. 담당자 교체가 실제로 자주 일어납니다.</p></div>
+      <div class="card fact"><span class="big">이미지 속</span><p>학부 공지의 핵심 내용이 카드뉴스 이미지 안에 있어 글 검색으로는 찾기 어렵습니다.</p></div>
+    </div>
   </section>
 
   <section>
+    <p class="kicker">Progress</p>
+    <h2>수집 현황</h2>
+    <div class="status-row">
+      <div class="acct"><div><div class="nm">미디어커뮤니케이션학부 학생회 <span class="pill ok">수집 완료</span></div><div class="h">@hufs_mecomm · 2024.08부터</div></div><div class="n">446<small>건</small></div><div class="bar"><i style="width:100%"></i></div></div>
+      <div class="acct"><div><div class="nm">방송제작실습실 <span class="pill ok">수집 완료</span></div><div class="h">@hufsmecomm_studio · 2024.03부터</div></div><div class="n">22<small>건</small></div><div class="bar"><i style="width:100%"></i></div></div>
+      <div class="acct"><div><div class="nm">학부장실 <span class="pill todo">연결 준비 중</span></div><div class="h">@hufscommu_office · 프로페셔널 계정 전환 후 수집</div></div><div class="n">—</div><div class="bar"><i style="width:0"></i></div></div>
+    </div>
+    <p class="muted">2026-11-03 기준, 인스타그램 공식 API(Business Discovery)로 수집. 확대 대상으로 학내 인스타 계정 99개 목록을 확보했습니다.</p>
+  </section>
+
+  <section>
+    <p class="kicker">Features</p>
     <h2>핵심 기능</h2>
-    <ul class="features">
-      <li><span class="pill ok">구현 완료</span><strong>자동 아카이빙</strong><span class="d">인스타 공식 API로 수집, 학년도·임기 자동 배정, 연락처 마스킹</span></li>
-      <li><span class="pill todo">본선 개발</span><strong>AI 기록 정리</strong><span class="d">행사·업무·공지 분류와 요약 (HyperCLOVA X)</span></li>
-      <li><span class="pill todo">본선 개발</span><strong>통합 검색</strong><span class="d">과거 활동·학사 공지를 자연어로 검색</span></li>
-      <li><span class="pill todo">본선 개발</span><strong>인수인계 문서</strong><span class="d">과거 기록과 담당자 메모로 초안 생성 (권한자만)</span></li>
-    </ul>
+    <div class="grid">
+      <div class="card feat">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg>
+        <span class="pill ok">구현 완료</span><strong>자동 아카이빙</strong><span class="d">공식 API 수집, 학년도·임기 자동 배정, 연락처 마스킹</span></div>
+      <div class="card feat">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/><path d="M17 15l2 2 3-4"/></svg>
+        <span class="pill todo">본선 개발</span><strong>AI 기록 정리</strong><span class="d">행사·업무·공지 분류와 요약 (HyperCLOVA X)</span></div>
+      <div class="card feat">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+        <span class="pill todo">본선 개발</span><strong>통합 검색</strong><span class="d">과거 활동과 학사 공지를 자연어로 검색</span></div>
+      <div class="card feat">
+        <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/></svg>
+        <span class="pill todo">본선 개발</span><strong>인수인계 문서</strong><span class="d">과거 기록과 담당자 메모로 초안 생성, 권한자만</span></div>
+    </div>
   </section>
 
   <section>
+    <p class="kicker">Architecture</p>
     <h2>시스템 구조</h2>
     <div class="diagram">
 <pre class="mermaid">
@@ -137,45 +266,36 @@ flowchart LR
     IG["Instagram<br/>공식 API"] --> COL
     WEB["학과 홈페이지"] --> COL
     subgraph NCP["NAVER Cloud Platform"]
-        COL["수집기"] --> DB[("PostgreSQL<br/>Object Storage")]
+        COL["수집기"] --> PRE["학년도·임기 배정<br/>연락처 마스킹"]
+        PRE --> DB[("PostgreSQL<br/>Object Storage")]
         DB --> BE["FastAPI"]
-        BE <--> AI["CLOVA Studio<br/>HyperCLOVA X · 임베딩"]
+        BE <--> AI["CLOVA Studio<br/>요약 · 분류 · 임베딩"]
         BE --> FE["Next.js 웹"]
     end
     FE --> U["학생회 · 조교 · 재학생"]
 </pre>
     </div>
-    <div class="diagram">
-<pre class="mermaid">
-flowchart LR
-    S1["수집"] --> S2["학년도·임기 배정"] --> S3["연락처 마스킹"] --> S4["AI 분류·요약"] --> S5["임베딩"]
-    S3 --> O1["아카이브"]
-    S5 --> O2["검색"]
-    S5 --> O3["인수인계 문서"]
-</pre>
-    </div>
-    <p class="muted">인스타그램은 공식 API(Business Discovery)만 씁니다. 비공식 스크래핑은 하지 않습니다.</p>
   </section>
 
   <section>
+    <p class="kicker">Timeline</p>
     <h2>일정</h2>
-    <div class="tbl"><table>
-      <tbody>
-        <tr><td class="when">~ 11/10</td><td><strong>예선 접수</strong> · 기획서 제출, 인스타 수집기 구현 완료</td></tr>
-        <tr><td class="when">11/16 – 11/27</td><td><strong>MVP</strong> · NCP 배포, 아카이브 웹 화면, AI 분류·요약, 검색 1차</td></tr>
-        <tr><td class="when">11/28 – 12/6</td><td><strong>본선 제출</strong> · 인수인계 문서 생성, QA·사용성 테스트, 결과보고서</td></tr>
-        <tr><td class="when">12/9</td><td><strong>발표</strong> · 발표 10분 + Q&amp;A 5분, 라이브 데모</td></tr>
-      </tbody>
-    </table></div>
+    <ol class="steps">
+      <li class="now"><span class="when">~ 11/10</span><strong>예선 접수</strong><span class="d">기획서 제출, 시범 계정 수집</span></li>
+      <li><span class="when">11/16 – 11/27</span><strong>MVP</strong><span class="d">NCP 배포, 아카이브 화면, AI 요약, 검색</span></li>
+      <li><span class="when">11/28 – 12/6</span><strong>본선 제출</strong><span class="d">인수인계 문서, QA, 결과보고서</span></li>
+      <li><span class="when">12/9</span><strong>발표</strong><span class="d">10분 발표 + 라이브 데모</span></li>
+    </ol>
   </section>
 
   <section>
+    <p class="kicker">Team</p>
     <h2>팀</h2>
-    <div class="team">
-      <div class="member"><span class="role">PM · AI Agent</span><span class="name">이승주</span><span class="bg">AI융합학과 석사과정</span></div>
-      <div class="member"><span class="role">Backend</span><span class="name">박성재</span><span class="bg">컴퓨터공학 학부</span></div>
-      <div class="member"><span class="role">Frontend</span><span class="name">음유현</span><span class="bg">AI융합학과 석사과정</span></div>
-      <div class="member"><span class="role">QA, 외국인 유학생 시점</span><span class="name">궈이판</span><span class="bg">미디어커뮤니케이션학과 박사과정</span></div>
+    <div class="grid">
+      <div class="card member"><span class="avatar">승주</span><div><div class="role">PM · AI Agent</div><div class="name">이승주</div><div class="bg">AI융합학과 석사과정</div></div></div>
+      <div class="card member"><span class="avatar">성재</span><div><div class="role">Backend</div><div class="name">박성재</div><div class="bg">컴퓨터공학 학부</div></div></div>
+      <div class="card member"><span class="avatar">유현</span><div><div class="role">Frontend</div><div class="name">음유현</div><div class="bg">AI융합학과 석사과정</div></div></div>
+      <div class="card member"><span class="avatar">이판</span><div><div class="role">QA, 외국인 유학생 시점</div><div class="name">궈이판</div><div class="bg">미디어커뮤니케이션학과 박사과정</div></div></div>
     </div>
   </section>
 
@@ -186,8 +306,8 @@ flowchart LR
 <script>
   (function () {
     if (!window.mermaid) return;
-    var dark = document.documentElement.getAttribute("data-theme") === "dark" ||
-      (document.documentElement.getAttribute("data-theme") !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var root = document.documentElement, t = root.getAttribute("data-theme");
+    var dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     try {
       mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", fontFamily: "Noto Sans KR, sans-serif" });
       mermaid.run({ querySelector: "pre.mermaid:not([data-processed])" });
