@@ -155,7 +155,7 @@ code { font-family: var(--f-mono); font-size: .9em; }
 .toon-open { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font: 700 13px var(--f-body); color: var(--accent);
   background: var(--accent-soft); border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
 .toon-open:hover, .toon-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-dialog.toon { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 18px;
+dialog.toon { width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 18px;
   background: var(--surface); color: var(--ink); box-shadow: 0 24px 60px rgba(10, 16, 28, .35); overflow-x: hidden; overflow-y: auto; }
 dialog.toon::backdrop { background: rgba(12, 18, 28, .62); backdrop-filter: blur(3px); }
 .toon-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px 20px; }
@@ -163,7 +163,7 @@ dialog.toon::backdrop { background: rgba(12, 18, 28, .62); backdrop-filter: blur
 .toon-head h2 b { color: var(--thread); }
 .toon-x { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--faded-bg); color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; }
 .toon-x:hover, .toon-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.toon-stage { position: relative; margin: 0 16px; aspect-ratio: 1 / 1; max-height: calc(100vh - 240px); border-radius: 10px; overflow: hidden; background: var(--faded-bg); touch-action: pan-y; }
+.toon-stage { position: relative; margin: 0 auto; aspect-ratio: 1 / 1; max-width: calc(100% - 32px); max-height: calc(100vh - 240px); border-radius: 10px; overflow: hidden; background: var(--faded-bg); touch-action: pan-y; }
 .toon-stage img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .toon-slot { position: absolute; inset: 10px; border: 2px dashed var(--faded); border-radius: 8px; display: grid; place-content: center; text-align: center; gap: 6px; padding: 16px; }
 .toon-slot .ep { font-family: var(--f-mono); font-size: 12px; color: var(--accent); }
@@ -393,14 +393,8 @@ flowchart LR
 <script>
   /* 웹툰 컷 목록. 이미지가 오면 src에 경로를 넣는다 (예: "webtoon/ep1-1.png"). src가 없으면 자리 표시가 보인다. */
   var TOON = [
-    { ep: "EP.1 사라진 추억", n: 1, title: "새내기 환영회", src: null },
-    { ep: "EP.1 사라진 추억", n: 2, title: "축제 학생회 부스", src: null },
-    { ep: "EP.1 사라진 추억", n: 3, title: "4학년, 끝없는 스크롤", src: null },
-    { ep: "EP.1 사라진 추억", n: 4, title: "추억이 없어진 것 같아", src: null },
-    { ep: "EP.2 전설의 조교", n: 1, title: "학과 사무실 조교", src: null },
-    { ep: "EP.2 전설의 조교", n: 2, title: "전설이 되어 해외 취업", src: null },
-    { ep: "EP.2 전설의 조교", n: 3, title: "학종지 선생님이 찾는다", src: null },
-    { ep: "EP.2 전설의 조교", n: 4, title: "기록이 없어서 학교가 펑", src: null }
+    { ep: "EP.1 사라진 추억", n: 1, title: "새내기 환영회부터 4학년까지", src: "webtoon/ep1.webp" },
+    { ep: "EP.2 전설의 조교", n: 1, title: "학과 사무실 조교의 인수인계", src: "webtoon/ep2.webp" }
   ];
   (function () {
     var dlg = document.getElementById("toon");
@@ -408,17 +402,17 @@ flowchart LR
     var stage = document.getElementById("toon-stage"), cap = document.getElementById("toon-cap"),
         count = document.getElementById("toon-count"), dots = document.getElementById("toon-dots"), i = 0;
     var prev = document.createElement("button"), next = document.createElement("button");
-    prev.className = "toon-nav prev"; prev.type = "button"; prev.setAttribute("aria-label", "이전 컷"); prev.textContent = "‹";
-    next.className = "toon-nav next"; next.type = "button"; next.setAttribute("aria-label", "다음 컷"); next.textContent = "›";
+    prev.className = "toon-nav prev"; prev.type = "button"; prev.setAttribute("aria-label", "이전 화"); prev.textContent = "‹";
+    next.className = "toon-nav next"; next.type = "button"; next.setAttribute("aria-label", "다음 화"); next.textContent = "›";
     TOON.forEach(function (t, k) {
       var d = document.createElement("button"); d.type = "button";
-      d.setAttribute("aria-label", t.ep + " " + t.n + "컷");
+      d.setAttribute("aria-label", t.ep);
       d.addEventListener("click", function () { show(k); });
       dots.appendChild(d);
     });
     function slot(t) {
       var box = document.createElement("div"); box.className = "toon-slot";
-      var ep = document.createElement("span"); ep.className = "ep"; ep.textContent = t.ep + " · " + t.n + "컷";
+      var ep = document.createElement("span"); ep.className = "ep"; ep.textContent = t.ep;
       var st = document.createElement("strong"); st.textContent = t.title;
       var d = document.createElement("span"); d.className = "d"; d.textContent = "웹툰 이미지가 들어갈 자리";
       box.append(ep, st, d);
@@ -430,7 +424,7 @@ flowchart LR
       stage.textContent = "";
       if (t.src) {
         var img = document.createElement("img");
-        img.src = t.src; img.alt = t.ep + " " + t.n + "컷: " + t.title;
+        img.src = t.src; img.alt = t.ep + " 네컷 웹툰: " + t.title;
         stage.appendChild(img);
       } else {
         stage.appendChild(slot(t));
