@@ -8,6 +8,7 @@
 보안: 액세스 토큰은 쿼리 파라미터로 전달되므로 요청 URL을 예외 메시지·로그에 넣지 않는다.
 """
 
+import json
 import re
 import time
 from collections.abc import Callable, Iterator
@@ -36,6 +37,12 @@ GRAPH_HOST = "https://graph.facebook.com"
 AUTH_ERROR_CODE = 190
 RATE_LIMIT_ERROR_CODES = {4, 17, 32}
 
+# 앱 호출 한도는 최근 1시간의 호출 수·응답 시간 비율(%)로 계산되어 천천히 줄어든다(x-app-usage 헤더).
+# 몇 초 기다려서는 풀리지 않으므로 분 단위로 기다리고, 한도에 가까워지면 미리 쉬어 간다.
+RATE_LIMIT_BACKOFF = 60.0
+APP_USAGE_SOFT_LIMIT = 75
+APP_USAGE_PAUSE = 120.0
+
 
 class InstagramError(Exception):
     pass
@@ -56,6 +63,15 @@ def _check_username(username: str) -> None:
     """username은 fields 식 안에 들어가므로, 괄호·중괄호로 식을 바꾸지 못하게 인스타 아이디 형식만 허용한다."""
     if not _USERNAME_RE.fullmatch(username):
         raise InstagramError(f"인스타그램 아이디 형식이 아닙니다: {username!r}")
+
+
+def _app_usage(response: httpx.Response) -> int:
+    """x-app-usage(호출 수·CPU·응답 시간 %) 중 가장 큰 값. 헤더가 없거나 깨졌으면 0."""
+    try:
+        usage = json.loads(response.headers.get("x-app-usage", "{}"))
+        return max((int(v) for v in usage.values()), default=0)
+    except (ValueError, TypeError, AttributeError):
+        return 0
 
 
 class InstagramClient:
@@ -196,6 +212,8 @@ class InstagramClient:
                 raise InstagramError(f"Instagram 요청 실패: {type(exc).__name__}") from None
 
             if response.is_success:
+                if _app_usage(response) >= APP_USAGE_SOFT_LIMIT:
+                    self._sleep(APP_USAGE_PAUSE)
                 return response.json()
 
             code, message = self._parse_error(response)
@@ -203,7 +221,7 @@ class InstagramClient:
                 raise InstagramAuthError(f"토큰이 유효하지 않음 (HTTP {response.status_code}): {message}")
             if response.status_code == 429 or code in RATE_LIMIT_ERROR_CODES:
                 if attempt < self._max_retries:
-                    self._sleep(2**attempt)
+                    self._sleep(RATE_LIMIT_BACKOFF * 2**attempt)
                     continue
                 raise InstagramRateLimitError(
                     f"호출 한도 초과, 재시도 {self._max_retries}회 소진 (HTTP {response.status_code}): {message}"

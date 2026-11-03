@@ -89,7 +89,7 @@ def test_rate_limit_retries_then_raises(client, sleeps):
     with pytest.raises(InstagramRateLimitError) as exc:
         client.assigned_accounts(SECRET_TOKEN)
 
-    assert sleeps == [1, 2, 4]
+    assert sleeps == [60, 120, 240]
     assert route.call_count == 4
     assert SECRET_TOKEN not in str(exc.value)
 
@@ -102,7 +102,7 @@ def test_rate_limit_by_error_code_retries(client, sleeps):
 
     with pytest.raises(InstagramRateLimitError):
         client.assigned_accounts("tok")
-    assert sleeps == [1, 2, 4]
+    assert sleeps == [60, 120, 240]
 
 
 @respx.mock
@@ -115,7 +115,7 @@ def test_rate_limit_recovers(client, sleeps):
     )
 
     assert client.assigned_accounts("tok") == [{"id": "123", "username": "dummy_account"}]
-    assert sleeps == [1]
+    assert sleeps == [60]
 
 
 @respx.mock
@@ -199,3 +199,28 @@ def test_timeout_gives_up_without_url_in_message(client, sleeps):
     assert "ReadTimeout" in str(exc.value)
     assert SECRET_TOKEN not in str(exc.value)
     assert sleeps == [1, 2, 4]
+
+
+@respx.mock
+def test_pauses_when_app_usage_is_high(client, sleeps):
+    respx.get(MEDIA).mock(return_value=httpx.Response(
+        200, json={"data": []},
+        headers={"x-app-usage": '{"call_count":10,"total_cputime":5,"total_time":80}'},
+    ))
+
+    list(client.iter_media("tok", IG_ID))
+
+    assert sleeps == [120]
+
+
+@respx.mock
+def test_no_pause_when_usage_header_low_or_broken(client, sleeps):
+    respx.get(MEDIA).mock(side_effect=[
+        httpx.Response(200, json={"data": [], "paging": {"next": f"{MEDIA}?p=2"}},
+                       headers={"x-app-usage": '{"call_count":10,"total_time":20}'}),
+        httpx.Response(200, json={"data": []}, headers={"x-app-usage": "not-json"}),
+    ])
+
+    list(client.iter_media("tok", IG_ID))
+
+    assert sleeps == []
