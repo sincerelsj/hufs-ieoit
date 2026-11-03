@@ -23,6 +23,7 @@ def settings(tmp_path) -> Settings:
         admin_token="test-admin",
         instagram_app_id="test-app-id",
         instagram_app_secret="test-app-secret",
+        instagram_config_id="dummy-config-id",
         instagram_redirect_uri="http://localhost:8000/integrations/instagram/callback",
         media_storage="local",
         media_local_dir=str(tmp_path / "media"),

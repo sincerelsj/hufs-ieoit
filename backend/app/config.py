@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     instagram_app_id: str = ""
     instagram_app_secret: str = ""
+    instagram_config_id: str = ""
     instagram_redirect_uri: str = ""
     instagram_api_version: str = "v26.0"
     token_encryption_key: str = ""

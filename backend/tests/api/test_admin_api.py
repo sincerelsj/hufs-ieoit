@@ -305,6 +305,7 @@ def test_connect_url(client, make_org, admin):
         ("state_secret", "STATE_SECRET"),
         ("instagram_app_id", "INSTAGRAM_APP_ID"),
         ("instagram_app_secret", "INSTAGRAM_APP_SECRET"),
+        ("instagram_config_id", "INSTAGRAM_CONFIG_ID"),
         ("instagram_redirect_uri", "INSTAGRAM_REDIRECT_URI"),
         ("token_encryption_key", "TOKEN_ENCRYPTION_KEY"),
     ],

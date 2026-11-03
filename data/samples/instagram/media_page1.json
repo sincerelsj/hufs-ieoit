@@ -53,6 +53,6 @@
       "before": "DUMMYCURSORBEFORE1",
       "after": "DUMMYCURSORAFTER1"
     },
-    "next": "https://graph.instagram.com/v26.0/17800000000000000/media?access_token=DUMMY_TOKEN&limit=3&after=DUMMYCURSORAFTER1"
+    "next": "https://graph.facebook.com/v26.0/17800000000000000/media?access_token=DUMMY_TOKEN&limit=3&after=DUMMYCURSORAFTER1"
   }
 }

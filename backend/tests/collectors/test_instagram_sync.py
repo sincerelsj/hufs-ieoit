@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,7 +16,9 @@ from app.security import encrypt_token
 from app.storage import LocalStorage
 
 SAMPLES = Path(__file__).resolve().parents[3] / "data" / "samples" / "instagram"
-BASE = "https://graph.instagram.com/v26.0"
+BASE = "https://graph.facebook.com/v26.0"
+# 테스트 채널의 계정 ID는 한 자리라 샘플의 paging.next(긴 ID)와 겹치지 않는다.
+MEDIA_URL = re.compile(rf"^{re.escape(BASE)}/[0-9]/media")
 CDN = "https://cdn.example.test/media"
 IMAGE_BYTES = b"dummy-image-bytes"
 
@@ -76,7 +79,7 @@ def make_channel(session, settings, slug="test-org", handle="dummy_account", ext
 
 
 def mock_graph(page1: dict, page2: dict):
-    first = respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page1))
+    first = respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page1))
     second = respx.get(page1["paging"]["next"]).mock(return_value=httpx.Response(200, json=page2))
     return first, second
 
@@ -266,7 +269,7 @@ def test_media_download_failure_keeps_post(session, settings, ig, storage, http,
     channel = make_channel(session, settings)
     page1["data"] = page1["data"][:1]
     page1.pop("paging")
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page1))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page1))
     respx.get(f"{CDN}/17900000000000001.jpg").mock(return_value=httpx.Response(403))
 
     result = sync_channel(session, channel, ig, storage, http, settings, full=True)
@@ -285,7 +288,7 @@ def test_media_download_follows_cdn_redirect(session, settings, ig, storage, htt
     channel = make_channel(session, settings)
     page1["data"] = page1["data"][:1]
     page1.pop("paging")
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page1))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page1))
     respx.get(f"{CDN}/17900000000000001.jpg").mock(
         return_value=httpx.Response(302, headers={"location": "https://cdn2.example.test/moved.jpg"})
     )
@@ -306,7 +309,7 @@ def test_media_download_transport_error_keeps_post(session, settings, ig, storag
     channel = make_channel(session, settings)
     page1["data"] = page1["data"][:1]
     page1.pop("paging")
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page1))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page1))
     respx.get(f"{CDN}/17900000000000001.jpg").mock(side_effect=httpx.ConnectError("boom"))
 
     result = sync_channel(session, channel, ig, storage, http, settings, full=True)
@@ -319,7 +322,7 @@ def test_media_download_transport_error_keeps_post(session, settings, ig, storag
 def test_thumbnail_download_failure_counts_as_failed(session, settings, ig, storage, http, page2):
     channel = make_channel(session, settings)
     page2.pop("paging")
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page2))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page2))
     mock_cdn(fail={f"{CDN}/17900000000000004_thumb.jpg"})
 
     result = sync_channel(session, channel, ig, storage, http, settings, full=True)
@@ -350,7 +353,7 @@ def test_missing_media_url_uses_thumbnail(session, settings, ig, storage, http, 
 @respx.mock
 def test_auth_error_mid_pagination(session, settings, ig, storage, http, page1):
     channel = make_channel(session, settings)
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page1))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page1))
     respx.get(page1["paging"]["next"]).mock(
         return_value=httpx.Response(400, json={"error": {"code": 190, "message": "expired"}})
     )
@@ -369,7 +372,7 @@ def test_auth_error_mid_pagination(session, settings, ig, storage, http, page1):
 @respx.mock
 def test_rate_limit_keeps_status(session, settings, ig, storage, http):
     channel = make_channel(session, settings)
-    respx.get(f"{BASE}/me/media").mock(
+    respx.get(url__regex=MEDIA_URL).mock(
         return_value=httpx.Response(429, json={"error": {"code": 4, "message": "slow down"}})
     )
 
@@ -383,7 +386,7 @@ def test_rate_limit_keeps_status(session, settings, ig, storage, http):
 @respx.mock
 def test_other_api_error_is_failed(session, settings, ig, storage, http):
     channel = make_channel(session, settings)
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(500))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(500))
 
     result = sync_channel(session, channel, ig, storage, http, settings)
 
@@ -424,7 +427,7 @@ def test_sync_all_continues_after_channel_failure(session, settings, ig, storage
             return httpx.Response(400, json={"error": {"code": 190, "message": "expired"}})
         return httpx.Response(200, json=page2)
 
-    respx.get(f"{BASE}/me/media").mock(side_effect=graph)
+    respx.get(url__regex=MEDIA_URL).mock(side_effect=graph)
     mock_cdn()
 
     results = sync_all(session, ig, storage, http, settings)
@@ -442,7 +445,7 @@ def test_sync_all_filters_org_and_skips_inactive(session, settings, ig, storage,
     inactive = make_channel(session, settings, slug="org-c", handle="dummy_c", ext_id="3")
     inactive.status = "needs_reauth"
     session.commit()
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page2))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page2))
     mock_cdn()
 
     assert set(sync_all(session, ig, storage, http, settings)) == {"dummy_a", "dummy_b"}
@@ -457,7 +460,7 @@ def test_sync_all_skips_disconnected_channel(session, settings, ig, storage, htt
     gone.access_token_enc = None
     gone.token_expires_at = None
     session.commit()
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page2))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page2))
     mock_cdn()
 
     assert set(sync_all(session, ig, storage, http, settings)) == {"dummy_a"}
@@ -479,7 +482,7 @@ def test_sync_all_survives_unexpected_exception(session, settings, ig, http, pag
             if self.calls == 1:
                 raise RuntimeError("disk full")
 
-    respx.get(f"{BASE}/me/media").mock(return_value=httpx.Response(200, json=page2))
+    respx.get(url__regex=MEDIA_URL).mock(return_value=httpx.Response(200, json=page2))
     mock_cdn()
 
     results = sync_all(session, ig, ExplodingStorage(), http, settings)

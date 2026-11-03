@@ -26,19 +26,22 @@
 
 | 방식 | 결정 |
 |---|---|
-| **B. 공식 Instagram API (Instagram 로그인)** | **이번 범위.** 운영자 동의 기반, 지속 자동 수집 |
+| **B. 공식 Instagram API (Unified login)** | **이번 범위.** 운영자 동의 기반, 지속 자동 수집 |
 | A. 운영자의 "내 정보 다운로드" 파일 가져오기 | 후속. 같은 저장 경로(`ingest`)를 쓰도록 인터페이스만 맞춰 둔다 |
 | C. 비공식 스크래핑 | **사용하지 않음.** 이용약관 위반·계정 정지 위험, 공개 레포·심사 리스크 |
 
 API 전제 (Meta 문서 기준):
+- **2026-11-03 변경:** 새 Meta 앱은 "API setup with Instagram login"을 쓸 수 없고 **"API setup with Unified login"**만 쓸 수 있다(콘솔 안내: "최신 앱에서는 Instagram 로그인이 포함된 API 설정을 사용할 수 없습니다"). 아래는 Unified login 기준이다.
+- 앱은 **비즈니스 포트폴리오** 소유여야 하고(현재 Hufsimslab), 대상 인스타 계정도 연결 시 포트폴리오에 들어 있어야 한다. 비즈니스 인증은 개발 모드에서 필요 없다.
 - 대상 계정은 **프로페셔널 계정**(크리에이터/비즈니스)이어야 한다. Facebook 페이지 연결은 불필요.
-- 권한: `instagram_business_basic` (자기 계정 게시물 읽기만).
-- 앱은 개발 모드로 운영하고, 3개 계정을 **Instagram 테스터**로 등록한다 → App Review 없이 사용 가능. 다른 학과로 확대할 때 App Review 진행.
-- 호스트: `graph.instagram.com`, 버전은 환경변수(`INSTAGRAM_API_VERSION`, 기본 `v26.0`)로 둔다.
+- 권한: `instagram_basic` (게시물 읽기). 템플릿 구성에 들어 있는 광고·DM·댓글·게시 권한은 쓰지 않으며, 구성에서 빼는 것을 목표로 한다.
+- 토큰: **시스템 사용자 토큰(SUAT)**. 포트폴리오에 묶여 연결한 사람이 떠나도 유지되고, 구성 설정상 **만료되지 않는다** → 갱신 로직 없음.
+- 앱은 개발 모드로 운영하고, 3개 계정을 **Instagram 테스터**로 등록한다 → App Review 없이 사용 가능(표준 액세스는 앱 역할이 있는 사람만). 다른 학과로 확대할 때 App Review·Live 모드 진행.
+- 호스트: `graph.facebook.com`, 버전은 환경변수(`INSTAGRAM_API_VERSION`, 기본 `v26.0`)로 둔다. 앱 ID·시크릿은 **Meta 앱** 값이다.
 
 API로 **못 가져오는 것**: 하이라이트, 지난 스토리, 다른 사람 계정. → A 방식 또는 직접 등록으로 보완.
 
-> ⚠️ 첫 토큰 발급 직후 확인: `caption` 필드가 Instagram 로그인 경로에서 내려오는지. 안 내려오면 이 설계의 수집 방식을 재검토한다.
+> ⚠️ 첫 토큰 발급 직후 확인: `caption` 필드가 이 경로에서 내려오는지. 안 내려오면 이 설계의 수집 방식을 재검토한다.
 
 ### 2.1 과거 기록 범위 (예: 2018년~현재)
 
@@ -109,7 +112,7 @@ Post 1─* PostMedia
 | platform | `instagram` |
 | handle | hufs_mecomm |
 | external_user_id | 인스타 사용자 ID, (platform, external_user_id) unique |
-| access_token_enc | Fernet 암호화한 장기 토큰 |
+| access_token_enc | Fernet 암호화한 시스템 사용자 토큰 (`token_expires_at`은 비움) |
 | token_expires_at | |
 | status | `active` \| `needs_reauth` \| `disconnected` |
 | last_synced_at | |
@@ -157,7 +160,7 @@ backend/
 │   ├── storage.py              MediaStorage: Local / NCP Object Storage(S3 호환)
 │   ├── security.py             토큰 암호화, OAuth state 서명, 관리자 토큰 검사
 │   ├── api/                    archive.py(조회), admin.py(관리)
-│   └── cli.py                  seed / sync-instagram / refresh-tokens
+│   └── cli.py                  seed / sync-instagram / register-instagram
 └── tests/
 ```
 
@@ -168,22 +171,30 @@ backend/
 
 ## 6. 흐름
 
-### 6.1 계정 연결 (최초 1회, 운영자)
+### 6.1 계정 연결 (계정당 1회)
+토큰이 만료되지 않으므로 계정마다 한 번만 연결한다. 두 경로가 같은 `connect_channel`을 쓴다.
+
+**(가) 콘솔 토큰 등록 — 현재 기본.** 관리자가 계정의 로그인 권한을 가진 경우.
+1. Meta 콘솔 → Instagram 이용 사례 → API setup with Unified login → 2. 액세스 토큰 생성 → 계정 추가 → **토큰 생성**.
+2. `python -m app.cli register-instagram --org <slug> [--account <username>]` 실행 → 토큰을 화면에 보이지 않게 붙여 넣음(getpass).
+3. 서버: `GET /me/assigned_instagram_accounts?fields=id,username`로 계정 확인 → channel 생성/토큰 교체(암호화). 수집은 `sync-instagram --full`로 따로 실행.
+
+**(나) 연동 링크 — 운영자가 원격으로 연결할 때.** HTTPS 콜백 주소(ngrok 또는 도메인)가 필요하다.
 1. 관리자가 `GET /admin/organizations/{slug}/instagram/connect-url` → 연결 링크를 운영자에게 전달.
-   - 링크: `https://www.instagram.com/oauth/authorize?client_id=…&redirect_uri=…&response_type=code&scope=instagram_business_basic&state=<서명된 org slug>`
-2. 운영자가 로그인·동의 → `GET /integrations/instagram/callback?code=…&state=…`
-3. 서버: state 서명 검증(위조·만료 시 거부) → `POST https://api.instagram.com/oauth/access_token`로 단기 토큰(1시간) → `GET graph.instagram.com/access_token?grant_type=ig_exchange_token`로 장기 토큰(60일) → `/me?fields=user_id,username`로 계정 확인 → channel 생성/토큰 교체 → 바로 전체 수집(6.2) 실행.
+   - 링크: `https://www.facebook.com/dialog/oauth?client_id=<Meta 앱 ID>&config_id=…&redirect_uri=…&response_type=code&state=<서명된 org slug>`
+2. 운영자가 인스타그램(또는 페이스북)으로 로그인 → 포트폴리오·계정 선택 → 동의 → `GET /integrations/instagram/callback?code=…&state=…`
+3. 서버: state 서명 검증(위조·만료 시 거부) → `GET graph.facebook.com/{ver}/oauth/access_token`로 시스템 사용자 토큰 → `/me/assigned_instagram_accounts`로 공유된 계정 확인(여러 개면 모두 이 조직에 연결, 0개면 400) → channel 생성/토큰 교체 → 바로 전체 수집(6.2) 실행.
 
 ### 6.2 동기화 (`python -m app.cli sync-instagram [--org slug] [--full]`)
-1. `GET /me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username,children{id,media_type,media_url,thumbnail_url}&limit=50`, `paging.next`를 따라간다 (최신순).
+1. `GET /{ig-user-id}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username,children{id,media_type,media_url,thumbnail_url}&limit=50`, `paging.next`를 따라간다 (최신순).
 2. 기본(증분): 이미 저장된 `media_id`를 만나면 멈춘다. `--full`: 끝까지 돌며 캡션 수정 등을 반영.
 3. 새 게시물마다 미디어 파일을 내려받아 저장소에 올린다. API의 `media_url`은 **만료되는 CDN 링크**라 반드시 복사해 둔다.
    - `media_url`이 없으면(저작권 음원 릴스 등) `thumbnail_url` → 그것도 없으면 `permalink`만 저장.
 4. `PostIn` → `ingest.upsert` (학년도 계산, 임기 배정, `dedupe_key`로 중복 방지).
 5. 끝나면 `channels.last_synced_at` 갱신.
 
-### 6.3 토큰 갱신 (`python -m app.cli refresh-tokens`, 하루 1회 cron)
-- 만료 10일 이내 토큰을 `GET graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token`로 갱신.
+### 6.3 토큰 갱신
+- 없음. 시스템 사용자 토큰은 만료되지 않는다(구성 설정 "토큰이 만료되지 않습니다"). 포트폴리오에서 앱을 지우거나 계정을 다른 포트폴리오로 옮기면 토큰이 무효가 되고, 그때는 code 190 → `needs_reauth` 후 다시 연결한다.
 
 ### 6.4 오류 처리
 | 상황 | 처리 |
@@ -218,7 +229,7 @@ backend/
 
 ## 9. 환경변수 (`.env.example`에 이름만 추가)
 
-`INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_REDIRECT_URI`, `INSTAGRAM_API_VERSION`, `TOKEN_ENCRYPTION_KEY`, `STATE_SECRET`, `OAUTH_STATE_MAX_AGE`(초, 기본 259200=72시간), `ADMIN_TOKEN`, `MEDIA_STORAGE`(`local`|`ncp`), `MEDIA_LOCAL_DIR`(기본 `data/raw/media`, gitignore), `NCP_OBJECT_STORAGE_ENDPOINT`
+`INSTAGRAM_APP_ID`(Meta 앱 ID), `INSTAGRAM_APP_SECRET`(Meta 앱 시크릿), `INSTAGRAM_CONFIG_ID`(연동 링크용), `INSTAGRAM_REDIRECT_URI`(연동 링크용), `INSTAGRAM_API_VERSION`, `TOKEN_ENCRYPTION_KEY`, `STATE_SECRET`, `OAUTH_STATE_MAX_AGE`(초, 기본 259200=72시간), `ADMIN_TOKEN`, `MEDIA_STORAGE`(`local`|`ncp`), `MEDIA_LOCAL_DIR`(기본 `data/raw/media`, gitignore), `NCP_OBJECT_STORAGE_ENDPOINT`
 
 ## 10. 테스트
 
@@ -227,7 +238,7 @@ backend/
 - 학년도: 2/28·2/29(윤년)·3/1 경계, UTC→KST 날짜 넘어가는 경우
 - 임기: 배정, 겹침 거부, 임기 수정 시 재배정, `term_locked` 유지, 임기 없는 게시물
 - 동기화: 페이지 넘김, 캐러셀 children, `media_url` 없는 게시물, 증분 중단, 재실행 시 중복 없음
-- 토큰: 장기 토큰 교환, 갱신 대상 선별, code 190 → `needs_reauth`, 429 백오프
+- 토큰: 콘솔 토큰 등록(암호화 저장·출력에 토큰 없음), 코드 교환, code 190 → `needs_reauth`, 429 백오프
 - OAuth: state 위조·만료 거부
 - 조회 API: 학년도·임기별 묶음 응답 형태
 

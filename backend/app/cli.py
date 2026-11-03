@@ -1,14 +1,14 @@
 import argparse
+import getpass
 import logging
 from collections.abc import Callable
-from datetime import UTC, datetime
 
 import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.collectors.instagram.client import InstagramClient
-from app.collectors.instagram.oauth import refresh_expiring
+from app.collectors.instagram.client import InstagramClient, InstagramError
+from app.collectors.instagram.oauth import ChannelConflict, connect_channel
 from app.collectors.instagram.sync import sync_all
 from app.config import get_settings
 from app.db import Base, make_engine
@@ -90,29 +90,59 @@ def _cmd_sync_instagram(args: argparse.Namespace) -> int:
     return 1 if any(r.error for r in results.values()) else 0
 
 
-def _cmd_refresh_tokens(_args: argparse.Namespace) -> int:
+def _cmd_register_instagram(args: argparse.Namespace) -> int:
+    """Meta 콘솔에서 발급한 토큰을 받아 조직에 연결한다. 토큰은 화면에 보이지 않게 입력받는다."""
     settings = get_settings()
+    token = getpass.getpass("Meta 콘솔에서 복사한 액세스 토큰 (입력이 화면에 보이지 않습니다): ").strip()
+    if not token:
+        print("토큰이 비어 있습니다.")
+        return 1
+
     engine = make_engine(settings.database_url)
     try:
         Base.metadata.create_all(engine)
         with Session(engine) as session, httpx.Client(timeout=30) as http:
+            org = session.scalar(select(Organization).where(Organization.slug == args.org))
+            if org is None:
+                print(f"조직을 찾을 수 없습니다: {args.org} (먼저 seed를 실행하세요)")
+                return 1
             client = InstagramClient(
                 http,
                 settings.instagram_app_id,
                 settings.instagram_app_secret,
                 settings.instagram_api_version,
             )
-            count = refresh_expiring(session, client, settings, now=datetime.now(UTC))
+            try:
+                accounts = client.assigned_accounts(token)
+            except InstagramError as exc:
+                print(f"토큰으로 계정을 조회하지 못했습니다: {exc}")
+                return 1
+            if args.account:
+                accounts = [a for a in accounts if a.get("username") == args.account]
+            if not accounts:
+                print("이 토큰으로 접근할 수 있는 Instagram 계정이 없습니다(--account 이름도 확인하세요).")
+                return 1
+            try:
+                for account in accounts:
+                    connect_channel(session, settings, org, token, account)
+            except ChannelConflict as exc:
+                session.rollback()
+                print(exc)
+                return 1
+            session.commit()
     finally:
         engine.dispose()
-    print(f"토큰 {count}개 갱신")
+
+    handles = ", ".join(f"@{a['username']}" for a in accounts)
+    print(f"{args.org}에 연결: {handles}")
+    print(f"수집하려면: python -m app.cli sync-instagram --org {args.org} --full")
     return 0
 
 
 COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "seed": _cmd_seed,
     "sync-instagram": _cmd_sync_instagram,
-    "refresh-tokens": _cmd_refresh_tokens,
+    "register-instagram": _cmd_register_instagram,
 }
 
 
@@ -123,7 +153,11 @@ def build_parser() -> argparse.ArgumentParser:
     sync = subparsers.add_parser("sync-instagram", help="연결된 Instagram 채널의 게시물을 수집한다")
     sync.add_argument("--org", help="이 조직 slug의 채널만 동기화한다")
     sync.add_argument("--full", action="store_true", help="끝까지 훑어 수정·실패한 미디어를 반영한다")
-    subparsers.add_parser("refresh-tokens", help="만료가 10일 이내인 Instagram 토큰을 갱신한다 (하루 1회 cron)")
+    register = subparsers.add_parser(
+        "register-instagram", help="Meta 콘솔에서 발급한 Instagram 토큰을 조직에 연결한다"
+    )
+    register.add_argument("--org", required=True, help="연결할 조직 slug")
+    register.add_argument("--account", help="토큰이 여러 계정에 접근할 때 이 username만 연결한다")
     return parser
 
 

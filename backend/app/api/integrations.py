@@ -108,21 +108,26 @@ def callback(
     if org is None:
         return _page("존재하지 않는 조직입니다.", 404)
 
-    # Instagram이 인가 코드 끝에 `#_`를 붙여 보내는 경우가 있다.
+    # 인가 코드 끝에 `#_`가 붙어 오는 경우가 있다.
     code = code.removesuffix("#_")
     try:
-        short_token = client.exchange_code(code, settings.instagram_redirect_uri)
-        token = client.exchange_long_lived(short_token)
-        me = client.me(token.access_token)
+        access_token = client.exchange_code(code, settings.instagram_redirect_uri)
+        accounts = client.assigned_accounts(access_token)
     except (InstagramError, KeyError, ValueError):  # 응답 형식이 달라도 502로 정리한다.
         return _page("Instagram과 통신하지 못했습니다. 잠시 후 다시 시도하세요.", 502)
+    if not accounts:
+        return _page("공유된 Instagram 계정이 없습니다. 연결 링크로 다시 시도하면서 계정을 선택하세요.", 400)
 
     try:
-        channel = connect_channel(session, settings, org, token, me)
-    except ChannelConflict:
+        # 한 번에 여러 계정을 공유했다면 모두 이 조직에 연결한다.
+        channel_ids = [
+            connect_channel(session, settings, org, access_token, account).id for account in accounts
+        ]
+    except (ChannelConflict, KeyError):
         session.rollback()
         return _page("이 Instagram 계정은 이미 다른 조직에 연결되어 있습니다.", 409)
     session.commit()
 
-    background_tasks.add_task(run_initial_sync, session_factory, channel.id, settings, storage)
+    for channel_id in channel_ids:
+        background_tasks.add_task(run_initial_sync, session_factory, channel_id, settings, storage)
     return _page("연동 완료. 게시물 수집을 시작했습니다. 이 창은 닫아도 됩니다.")

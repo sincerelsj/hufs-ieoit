@@ -124,13 +124,14 @@ def sync_channel(
     # commit하면 ORM 객체가 만료되므로 반복에 쓸 값은 미리 꺼내 둔다.
     organization_id = channel.organization_id
     channel_id = channel.id
+    ig_user_id = channel.external_user_id
     slug = session.scalar(select(Organization.slug).where(Organization.id == organization_id))
     # 마지막으로 "끝까지 성공한" 동기화 시각. 이 실행이 끝나기 전에는 갱신되지 않으므로 미리 잡아 둔다.
     last_completed_at = channel.last_synced_at
 
     try:
         token = decrypt_token(settings, channel.access_token_enc)
-        for item in client.iter_media(token):
+        for item in client.iter_media(token, ig_user_id):
             existing = session.scalar(
                 select(Post).where(
                     Post.organization_id == organization_id,

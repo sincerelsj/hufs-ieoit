@@ -21,3 +21,16 @@ uvicorn app.main:app --reload   # http://localhost:8000/docs
 ```
 
 `uvicorn`은 테이블을 만들지 않으므로, API를 처음 실행하기 전에 `seed`를 한 번 실행해야 합니다(여러 번 실행해도 안전합니다).
+
+## Instagram 계정 연결 (콘솔 토큰)
+
+새 Meta 앱은 Unified login만 쓸 수 있고, 토큰(시스템 사용자 토큰)은 만료되지 않아 계정마다 한 번만 연결합니다. 설계: `docs/specs/2026-11-02-instagram-collector-design.md` §6.1.
+
+1. 인스타 계정을 프로페셔널로 전환하고, 앱 역할에서 **Instagram 테스터**로 초대 → instagram.com 설정 → 앱 및 웹사이트 → 테스터 초대에서 수락.
+2. business.facebook.com → 비즈니스 포트폴리오 설정 → 계정 → **Instagram 계정 → 추가**로 계정을 포트폴리오에 넣는다.
+3. Meta 콘솔 → Instagram 이용 사례 → API setup with Unified login → **계정 추가 → 토큰 생성**. 광고 계정은 새로 만들지 않는다.
+4. 토큰을 복사해 바로 등록한다(입력은 화면에 보이지 않습니다. 채팅·메신저에 붙여 넣지 마세요).
+   ```bash
+   python -m app.cli register-instagram --org mecomm-studio   # 조직 slug: mecomm-council / mecomm-studio / mecomm-office
+   python -m app.cli sync-instagram --org mecomm-studio --full
+   ```
