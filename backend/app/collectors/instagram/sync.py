@@ -138,6 +138,8 @@ def sync_channel(
     channel_id = channel.id
     ig_user_id = channel.external_user_id
     handle = channel.handle
+    # 지난번에 중간에 멈췄다면 그 자리부터 이어 받는다(이미 받은 앞부분을 다시 훑느라 호출 한도를 쓰지 않게).
+    resume_cursor = channel.sync_cursor if discovery else None
     slug = session.scalar(select(Organization.slug).where(Organization.id == organization_id))
     # 마지막으로 "끝까지 성공한" 동기화 시각. 이 실행이 끝나기 전에는 갱신되지 않으므로 미리 잡아 둔다.
     last_completed_at = channel.last_synced_at
@@ -145,7 +147,15 @@ def sync_channel(
     try:
         token = decrypt_token(settings, token_enc)
         if discovery:
-            items = client.iter_discovered_media(token, collector_ig_id, handle)
+
+            def save_cursor(cursor: str) -> None:
+                # 앞 페이지 게시물은 이미 하나씩 commit됐으므로, 여기까지 받았다고 기록해 둔다.
+                session.get(Channel, channel_id).sync_cursor = cursor
+                session.commit()
+
+            items = client.iter_discovered_media(
+                token, collector_ig_id, handle, after=resume_cursor, on_cursor=save_cursor
+            )
         else:
             items = client.iter_media(token, ig_user_id)
         for item in items:
@@ -193,6 +203,7 @@ def sync_channel(
         return result
 
     channel.last_synced_at = datetime.now(timezone.utc)
+    channel.sync_cursor = None
     session.commit()
     return result
 

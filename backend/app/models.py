@@ -87,6 +87,8 @@ class Channel(Base):
     last_synced_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     # owner_token: 계정이 준 토큰(access_token_enc)으로 수집 | discovery: CollectorCredential로 handle을 조회
     collect_mode: Mapped[str] = mapped_column(String(30), default="owner_token")
+    # discovery 수집이 한도 초과 등으로 중간에 멈췄을 때 이어서 받을 커서. 끝까지 받으면 비운다.
+    sync_cursor: Mapped[str | None] = mapped_column(Text)
 
     organization: Mapped[Organization] = relationship(back_populates="channels")
 

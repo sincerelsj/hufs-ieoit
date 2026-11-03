@@ -325,3 +325,41 @@ def test_sync_discovery_auth_error_keeps_channel_active(session, settings, ig, h
 def test_auth_error_type_is_reexported():
     # sync가 잡는 예외와 같은 클래스인지 확인 (discovery 경로도 같은 오류 체계를 쓴다).
     assert issubclass(InstagramAuthError, InstagramError)
+
+
+@respx.mock
+def test_sync_discovery_resumes_from_saved_cursor(session, settings, ig, http, tmp_path):
+    channel = make_discovery_setup(session, settings)
+    respx.get(url__startswith=CDN).mock(
+        return_value=httpx.Response(200, content=b"dummy", headers={"content-type": "image/jpeg"})
+    )
+    rate_limited = httpx.Response(400, json={"error": {"code": 4, "message": "limit"}})
+    calls: list[str] = []
+
+    def first_run(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.params["fields"])
+        if "media.after(CUR1)" in request.url.params["fields"]:
+            return rate_limited
+        return httpx.Response(200, json=discovery_page([item(1, 20)], after="CUR1"))
+
+    respx.get(COLLECTOR).mock(side_effect=first_run)
+    storage = LocalStorage(tmp_path / "s")
+
+    first = sync_channel(session, channel, ig, storage, http, settings, full=True)
+
+    assert first.error == "rate_limited" and first.created == 1
+    assert session.get(Channel, channel.id).sync_cursor == "CUR1"
+
+    respx.reset()
+    respx.get(url__startswith=CDN).mock(
+        return_value=httpx.Response(200, content=b"dummy", headers={"content-type": "image/jpeg"})
+    )
+    route = mock_discovery({"CUR1": discovery_page([item(2, 19)], after=None)})
+
+    second = sync_channel(session, session.get(Channel, channel.id), ig, storage, http, settings, full=True)
+
+    assert second.error is None and second.created == 1
+    assert route.call_count == 1  # 앞 페이지를 다시 받지 않는다
+    assert "media.after(CUR1)" in route.calls[0].request.url.params["fields"]
+    assert session.get(Channel, channel.id).sync_cursor is None
+    assert len(session.scalars(select(Post)).all()) == 2
