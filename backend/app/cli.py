@@ -8,11 +8,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.collectors.instagram.client import InstagramClient, InstagramError
+from app.collectors.instagram.discovery import (
+    CollectorAccountNotFound,
+    CollectorNotRegistered,
+    add_discovery_channel,
+    get_collector,
+    register_collector,
+)
 from app.collectors.instagram.oauth import ChannelConflict, connect_channel
 from app.collectors.instagram.sync import sync_all
 from app.config import get_settings
 from app.db import Base, make_engine
 from app.models import Organization  # 모델 모듈을 import해야 Base.metadata에 테이블이 등록된다.
+from app.security import TokenDecryptError, decrypt_token
 from app.storage import make_storage
 
 SEED_ORGANIZATIONS: list[dict[str, str]] = [
@@ -139,10 +147,93 @@ def _cmd_register_instagram(args: argparse.Namespace) -> int:
     return 0
 
 
+def _make_client(http: httpx.Client) -> InstagramClient:
+    settings = get_settings()
+    return InstagramClient(
+        http, settings.instagram_app_id, settings.instagram_app_secret, settings.instagram_api_version
+    )
+
+
+def _cmd_register_collector(args: argparse.Namespace) -> int:
+    """Business Discovery용 수집 계정 토큰을 만료 없는 페이지 토큰으로 바꿔 저장한다."""
+    settings = get_settings()
+    if not settings.instagram_app_id or not settings.instagram_app_secret:
+        print("INSTAGRAM_APP_ID와 INSTAGRAM_APP_SECRET을 .env에 먼저 넣으세요 (토큰 변환에 필요).")
+        return 1
+    token = getpass.getpass("Meta에서 받은 사용자 액세스 토큰 (입력이 화면에 보이지 않습니다): ").strip()
+    if not token:
+        print("토큰이 비어 있습니다.")
+        return 1
+
+    engine = make_engine(settings.database_url)
+    try:
+        Base.metadata.create_all(engine)
+        with Session(engine) as session, httpx.Client(timeout=30) as http:
+            try:
+                credential = register_collector(session, settings, _make_client(http), token, args.account)
+            except InstagramError as exc:
+                print(f"토큰을 변환하지 못했습니다: {exc}")
+                return 1
+            except CollectorAccountNotFound as exc:
+                print(exc)
+                return 1
+            session.commit()
+            username = credential.username
+    finally:
+        engine.dispose()
+
+    print(f"수집용 계정 저장: @{username} (만료 없는 페이지 토큰)")
+    print("다음: python -m app.cli add-instagram --org <조직> --username <수집할 계정>")
+    return 0
+
+
+def _cmd_add_instagram(args: argparse.Namespace) -> int:
+    """수집 대상 계정을 username만으로 조직에 등록한다(Business Discovery)."""
+    settings = get_settings()
+    username = args.username.lstrip("@")
+    engine = make_engine(settings.database_url)
+    try:
+        Base.metadata.create_all(engine)
+        with Session(engine) as session, httpx.Client(timeout=30) as http:
+            org = session.scalar(select(Organization).where(Organization.slug == args.org))
+            if org is None:
+                print(f"조직을 찾을 수 없습니다: {args.org} (먼저 seed를 실행하세요)")
+                return 1
+            try:
+                credential = get_collector(session)
+            except CollectorNotRegistered as exc:
+                print(exc)
+                return 1
+            try:
+                token = decrypt_token(settings, credential.access_token_enc)
+                account = _make_client(http).discover_account(token, credential.ig_user_id, username)
+            except TokenDecryptError as exc:
+                print(exc)
+                return 1
+            except InstagramError as exc:
+                print(f"@{username}을 조회하지 못했습니다(공개 비즈니스·크리에이터 계정인지, 아이디가 맞는지 확인): {exc}")
+                return 1
+            try:
+                add_discovery_channel(session, org, account)
+            except ChannelConflict as exc:
+                session.rollback()
+                print(exc)
+                return 1
+            session.commit()
+    finally:
+        engine.dispose()
+
+    print(f"{args.org}에 등록: @{account['username']} (게시물 {account.get('media_count', '?')}개)")
+    print(f"수집하려면: python -m app.cli sync-instagram --org {args.org} --full")
+    return 0
+
+
 COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "seed": _cmd_seed,
     "sync-instagram": _cmd_sync_instagram,
     "register-instagram": _cmd_register_instagram,
+    "register-collector": _cmd_register_collector,
+    "add-instagram": _cmd_add_instagram,
 }
 
 
@@ -158,6 +249,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     register.add_argument("--org", required=True, help="연결할 조직 slug")
     register.add_argument("--account", help="토큰이 여러 계정에 접근할 때 이 username만 연결한다")
+    collector = subparsers.add_parser(
+        "register-collector", help="Business Discovery에 쓸 수집용 계정 토큰을 저장한다"
+    )
+    collector.add_argument("--account", help="페이지가 여러 개일 때 이 인스타 username의 페이지를 쓴다")
+    add = subparsers.add_parser(
+        "add-instagram", help="수집할 공개 프로페셔널 계정을 username으로 조직에 등록한다"
+    )
+    add.add_argument("--org", required=True, help="등록할 조직 slug")
+    add.add_argument("--username", required=True, help="수집할 인스타 계정 username")
     return parser
 
 

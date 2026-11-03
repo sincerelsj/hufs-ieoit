@@ -171,7 +171,16 @@ backend/
 
 ## 6. 흐름
 
-### 6.1 계정 연결 (계정당 1회)
+### 6.0 Business Discovery (2026-11-03 추가, 현재 기본)
+수집 대상 계정마다 토큰을 받는 대신, 우리 수집용 계정(Facebook 페이지에 연결된 프로페셔널 인스타) 토큰 하나로 다른 공개 비즈니스·크리에이터 계정의 피드 게시물을 읽는다. 2026-11-03 실제 토큰으로 학생회·실습실 계정 조회 성공 확인, 학부장실 계정은 `110/2207013 Invalid user id`(개인·비공개 계정 또는 아이디 오류로 추정).
+- 등록: `register-collector` → `GET /oauth/access_token?grant_type=fb_exchange_token`(60일 사용자 토큰) → `GET /me/accounts?fields=id,name,access_token,instagram_business_account{id,username}` → 인스타가 연결된 페이지의 페이지 토큰(만료 없음)을 `collector_credentials`에 암호화 저장(플랫폼당 1행).
+- 대상 추가: `add-instagram --org <slug> --username <id>` → `GET /{collector-ig-id}?fields=business_discovery.username(<id>){id,username,media_count}` → `channels.collect_mode = "discovery"`, 토큰 없음.
+- 수집: `GET /{collector-ig-id}?fields=business_discovery.username(<id>){media.limit(50){id,caption,media_type,media_url,permalink,timestamp,username,children{id,media_type,media_url}}}`, 다음 페이지는 `media.after(<cursor>)`. 페이지 사이 1초 간격. `thumbnail_url`은 받을 수 없다.
+- username은 fields 식 안에 들어가므로 `[A-Za-z0-9._]{1,30}`만 허용한다.
+- 토큰 오류(190)는 수집용 계정 문제이므로 채널을 `needs_reauth`로 바꾸지 않는다. `register-collector`를 다시 실행하면 이어서 수집된다.
+- 한계: 스토리 불가, 대상 계정이 아이디를 바꾸면 다시 `add-instagram` 필요, 개인 계정 불가.
+
+### 6.1 계정 연결 (계정당 1회, 계정 토큰 방식)
 토큰이 만료되지 않으므로 계정마다 한 번만 연결한다. 두 경로가 같은 `connect_channel`을 쓴다.
 
 **(가) 콘솔 토큰 등록 — 현재 기본.** 관리자가 계정의 로그인 권한을 가진 경우.

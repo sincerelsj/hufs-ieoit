@@ -1,11 +1,14 @@
 """Instagram API(Unified login) 클라이언트. HTTP만 알고 DB는 모른다.
 
-새 Meta 앱은 Instagram 로그인 방식을 쓸 수 없어 Unified login을 쓴다. 토큰은 비즈니스 포트폴리오에 묶인
-시스템 사용자 토큰(만료 없음)이고, 모든 호출은 graph.facebook.com으로 간다.
+새 Meta 앱은 Instagram 로그인 방식을 쓸 수 없어 Unified login을 쓴다. 모든 호출은 graph.facebook.com으로 간다.
+두 가지 수집 방식이 있다.
+- 계정 토큰: 수집 대상 계정이 직접 준 토큰으로 /{ig-user-id}/media를 읽는다.
+- Business Discovery: 우리 수집용 계정(페이지에 연결된 인스타) 토큰 하나로 다른 공개 프로페셔널 계정을 읽는다.
 
 보안: 액세스 토큰은 쿼리 파라미터로 전달되므로 요청 URL을 예외 메시지·로그에 넣지 않는다.
 """
 
+import re
 import time
 from collections.abc import Callable, Iterator
 
@@ -17,6 +20,16 @@ MEDIA_FIELDS = (
 )
 
 ACCOUNT_FIELDS = "id,username"
+
+# Business Discovery는 다른 계정의 공개 게시물이라 받을 수 있는 필드가 더 적다(thumbnail_url 없음).
+DISCOVERY_MEDIA_FIELDS = (
+    "id,caption,media_type,media_url,permalink,timestamp,username,"
+    "children{id,media_type,media_url}"
+)
+
+DISCOVERY_PAGE_DELAY = 1.0
+
+PAGE_FIELDS ="id,name,access_token,instagram_business_account{id,username}"
 
 GRAPH_HOST = "https://graph.facebook.com"
 
@@ -34,6 +47,15 @@ class InstagramAuthError(InstagramError):
 
 class InstagramRateLimitError(InstagramError):
     """HTTP 429 또는 error.code in {4, 17, 32}, 재시도 소진 후."""
+
+
+_USERNAME_RE = re.compile(r"[A-Za-z0-9._]{1,30}")
+
+
+def _check_username(username: str) -> None:
+    """username은 fields 식 안에 들어가므로, 괄호·중괄호로 식을 바꾸지 못하게 인스타 아이디 형식만 허용한다."""
+    if not _USERNAME_RE.fullmatch(username):
+        raise InstagramError(f"인스타그램 아이디 형식이 아닙니다: {username!r}")
 
 
 class InstagramClient:
@@ -80,6 +102,65 @@ class InstagramClient:
             },
         )
         return body["access_token"]
+
+    def exchange_long_lived_user_token(self, user_token: str) -> str:
+        """짧은 Facebook 사용자 토큰을 60일짜리로 바꾼다. 여기서 얻은 페이지 토큰은 만료되지 않는다."""
+        body = self._request(
+            "GET",
+            f"{self._base}/oauth/access_token",
+            params={
+                "grant_type": "fb_exchange_token",
+                "client_id": self._app_id,
+                "client_secret": self._app_secret,
+                "fb_exchange_token": user_token,
+            },
+        )
+        return body["access_token"]
+
+    def pages(self, user_token: str) -> list[dict]:
+        """사용자가 관리하는 Facebook 페이지 목록. 각 항목에 페이지 토큰과 연결된 인스타 계정이 들어 있다."""
+        params = {"fields": PAGE_FIELDS, "access_token": user_token}
+        return list(self._paginate(f"{self._base}/me/accounts", params))
+
+    def discover_account(self, token: str, ig_user_id: str, username: str) -> dict:
+        """다른 공개 프로페셔널 계정의 프로필({"id", "username", "media_count"})을 조회한다."""
+        _check_username(username)
+        body = self._request(
+            "GET",
+            f"{self._base}/{ig_user_id}",
+            params={
+                "fields": f"business_discovery.username({username}){{id,username,media_count}}",
+                "access_token": token,
+            },
+        )
+        return body["business_discovery"]
+
+    def iter_discovered_media(
+        self, token: str, ig_user_id: str, username: str, page_size: int = 50
+    ) -> Iterator[dict]:
+        """Business Discovery로 다른 계정의 게시물을 최신순으로 끝까지 넘긴다.
+
+        중첩 필드라 paging.next URL이 없고, 커서를 media.after(...)에 넣어 다시 요청한다.
+        """
+        _check_username(username)
+        after = None
+        while True:
+            media = f"media.limit({page_size})" if after is None else f"media.after({after}).limit({page_size})"
+            body = self._request(
+                "GET",
+                f"{self._base}/{ig_user_id}",
+                params={
+                    "fields": f"business_discovery.username({username}){{{media}{{{DISCOVERY_MEDIA_FIELDS}}}}}",
+                    "access_token": token,
+                },
+            )
+            page = body.get("business_discovery", {}).get("media", {})
+            yield from page.get("data", [])
+            paging = page.get("paging", {})
+            after = paging.get("cursors", {}).get("after")
+            if not paging.get("next") or not after:
+                return
+            self._sleep(DISCOVERY_PAGE_DELAY)  # 남의 계정을 훑으므로 페이지 사이에 간격을 둔다.
 
     def _paginate(self, url: str | None, params: dict | None) -> Iterator[dict]:
         while url:

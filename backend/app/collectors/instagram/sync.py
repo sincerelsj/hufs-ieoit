@@ -18,7 +18,7 @@ from app.collectors.instagram.client import (
     InstagramRateLimitError,
 )
 from app.config import Settings
-from app.models import Channel, Organization, Post, PostMedia
+from app.models import Channel, CollectorCredential, Organization, Post, PostMedia
 from app.security import TokenDecryptError, decrypt_token
 from app.storage import MediaStorage, media_key
 
@@ -117,21 +117,38 @@ def sync_channel(
     full: bool = False,
 ) -> SyncResult:
     result = SyncResult()
-    if channel.access_token_enc is None:
-        result.error = "needs_reauth"
-        return result
+    discovery = channel.collect_mode == "discovery"
+    if discovery:
+        credential = session.scalar(
+            select(CollectorCredential).where(CollectorCredential.platform == "instagram")
+        )
+        if credential is None:
+            result.error = "needs_reauth"
+            return result
+        token_enc = credential.access_token_enc
+        collector_ig_id = credential.ig_user_id
+    else:
+        if channel.access_token_enc is None:
+            result.error = "needs_reauth"
+            return result
+        token_enc = channel.access_token_enc
 
     # commit하면 ORM 객체가 만료되므로 반복에 쓸 값은 미리 꺼내 둔다.
     organization_id = channel.organization_id
     channel_id = channel.id
     ig_user_id = channel.external_user_id
+    handle = channel.handle
     slug = session.scalar(select(Organization.slug).where(Organization.id == organization_id))
     # 마지막으로 "끝까지 성공한" 동기화 시각. 이 실행이 끝나기 전에는 갱신되지 않으므로 미리 잡아 둔다.
     last_completed_at = channel.last_synced_at
 
     try:
-        token = decrypt_token(settings, channel.access_token_enc)
-        for item in client.iter_media(token, ig_user_id):
+        token = decrypt_token(settings, token_enc)
+        if discovery:
+            items = client.iter_discovered_media(token, collector_ig_id, handle)
+        else:
+            items = client.iter_media(token, ig_user_id)
+        for item in items:
             existing = session.scalar(
                 select(Post).where(
                     Post.organization_id == organization_id,
@@ -160,7 +177,9 @@ def sync_channel(
             else:
                 result.updated += 1
     except InstagramAuthError:
-        channel.status = "needs_reauth"
+        # discovery는 수집용 계정 토큰 문제라 채널은 그대로 두고, 다시 등록하면 바로 이어서 수집한다.
+        if not discovery:
+            channel.status = "needs_reauth"
         result.error = "needs_reauth"
         session.commit()
         return result

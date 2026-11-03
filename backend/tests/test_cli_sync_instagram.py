@@ -197,3 +197,101 @@ def test_register_instagram_account_of_other_org_conflicts(
 
     [channel] = stored_channels(cli_db)
     assert channel.organization_id == 1
+
+
+# --- Business Discovery: register-collector / add-instagram ---------------
+
+GRAPH = "https://graph.facebook.com/v26.0"
+
+
+@pytest.fixture
+def app_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("INSTAGRAM_APP_ID", "test-app-id")
+    monkeypatch.setenv("INSTAGRAM_APP_SECRET", "test-app-secret")
+    monkeypatch.setenv("INSTAGRAM_API_VERSION", "v26.0")
+    get_settings.cache_clear()
+
+
+def mock_collector_pages() -> None:
+    respx.get(f"{GRAPH}/oauth/access_token").mock(
+        return_value=httpx.Response(200, json={"access_token": "LONG_USER_TOKEN"})
+    )
+    respx.get(f"{GRAPH}/me/accounts").mock(return_value=httpx.Response(200, json={"data": [{
+        "id": "100", "name": "더미 페이지", "access_token": "PAGE_TOKEN",
+        "instagram_business_account": {"id": "17841400000000001", "username": "dummy_collector"},
+    }]}))
+
+
+@respx.mock
+def test_register_collector_saves_page_token(
+    cli_db: Path, app_keys: None, typed_token: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    mock_collector_pages()
+
+    assert main(["register-collector"]) == 0
+
+    out = capsys.readouterr().out
+    assert "@dummy_collector" in out
+    assert "CONSOLE_TOKEN" not in out and "PAGE_TOKEN" not in out
+
+
+def test_register_collector_requires_app_secret(
+    cli_db: Path, typed_token: list[str], monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("INSTAGRAM_APP_SECRET", "")
+    get_settings.cache_clear()
+
+    assert main(["register-collector"]) == 1
+
+    assert "INSTAGRAM_APP_SECRET" in capsys.readouterr().out
+
+
+@respx.mock
+def test_add_instagram_registers_discovery_channel(
+    cli_db: Path, app_keys: None, typed_token: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    make_org(cli_db)
+    mock_collector_pages()
+    assert main(["register-collector"]) == 0
+    route = respx.get(f"{GRAPH}/17841400000000001").mock(return_value=httpx.Response(200, json={
+        "business_discovery": {"id": "17841400000000009", "username": "dummy_target", "media_count": 12},
+    }))
+
+    assert main(["add-instagram", "--org", "test-org", "--username", "@dummy_target"]) == 0
+
+    assert route.calls[0].request.url.params["access_token"] == "PAGE_TOKEN"
+    assert "@dummy_target (게시물 12개)" in capsys.readouterr().out
+    [channel] = stored_channels(cli_db)
+    assert channel.collect_mode == "discovery"
+    assert channel.handle == "dummy_target"
+    assert channel.access_token_enc is None
+
+
+def test_add_instagram_without_collector_fails(
+    cli_db: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    make_org(cli_db)
+
+    assert main(["add-instagram", "--org", "test-org", "--username", "dummy_target"]) == 1
+
+    assert "register-collector" in capsys.readouterr().out
+
+
+@respx.mock
+def test_add_instagram_unknown_account_fails(
+    cli_db: Path, app_keys: None, typed_token: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    make_org(cli_db)
+    mock_collector_pages()
+    assert main(["register-collector"]) == 0
+    respx.get(f"{GRAPH}/17841400000000001").mock(return_value=httpx.Response(400, json={
+        "error": {"code": 110, "error_subcode": 2207013, "message": "Invalid user id"},
+    }))
+
+    assert main(["add-instagram", "--org", "test-org", "--username", "dummy_private"]) == 1
+
+    out = capsys.readouterr().out
+    assert "공개 비즈니스·크리에이터 계정" in out
+    assert "PAGE_TOKEN" not in out
+    assert stored_channels(cli_db) == []

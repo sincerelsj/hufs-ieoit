@@ -85,8 +85,23 @@ class Channel(Base):
     token_expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     status: Mapped[str] = mapped_column(String(30), default="active")
     last_synced_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    # owner_token: 계정이 준 토큰(access_token_enc)으로 수집 | discovery: CollectorCredential로 handle을 조회
+    collect_mode: Mapped[str] = mapped_column(String(30), default="owner_token")
 
     organization: Mapped[Organization] = relationship(back_populates="channels")
+
+
+class CollectorCredential(Base):
+    """Business Discovery에 쓰는 우리 수집용 계정. 플랫폼마다 하나."""
+
+    __tablename__ = "collector_credentials"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    platform: Mapped[str] = mapped_column(String(30), unique=True, default="instagram")
+    ig_user_id: Mapped[str] = mapped_column(String(100))
+    username: Mapped[str] = mapped_column(String(100))
+    access_token_enc: Mapped[str] = mapped_column(Text)  # 만료 없는 페이지 토큰
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 
 
 class Post(Base):
