@@ -174,3 +174,28 @@ def test_exchange_code(client):
         "redirect_uri": "https://example.test/cb",
         "code": "the-code",
     }
+
+
+@respx.mock
+def test_timeout_is_retried_then_succeeds(client, sleeps):
+    route = respx.get(MEDIA).mock(side_effect=[
+        httpx.ReadTimeout("slow"),
+        httpx.Response(200, json={"data": []}),
+    ])
+
+    assert list(client.iter_media("tok", IG_ID)) == []
+
+    assert route.call_count == 2
+    assert sleeps == [1]
+
+
+@respx.mock
+def test_timeout_gives_up_without_url_in_message(client, sleeps):
+    respx.get(MEDIA).mock(side_effect=httpx.ReadTimeout("slow"))
+
+    with pytest.raises(InstagramError) as exc:
+        list(client.iter_media(SECRET_TOKEN, IG_ID))
+
+    assert "ReadTimeout" in str(exc.value)
+    assert SECRET_TOKEN not in str(exc.value)
+    assert sleeps == [1, 2, 4]

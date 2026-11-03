@@ -136,7 +136,7 @@ class InstagramClient:
         return body["business_discovery"]
 
     def iter_discovered_media(
-        self, token: str, ig_user_id: str, username: str, page_size: int = 50
+        self, token: str, ig_user_id: str, username: str, page_size: int = 25
     ) -> Iterator[dict]:
         """Business Discovery로 다른 계정의 게시물을 최신순으로 끝까지 넘긴다.
 
@@ -177,6 +177,12 @@ class InstagramClient:
         for attempt in range(self._max_retries + 1):
             try:
                 response = self._http.request(method, url, **kwargs)
+            except httpx.TimeoutException as exc:
+                # Business Discovery는 응답이 느려 가끔 시간 초과가 난다. 한도 초과와 같은 방식으로 다시 시도한다.
+                if attempt < self._max_retries:
+                    self._sleep(2**attempt)
+                    continue
+                raise InstagramError(f"Instagram 요청 실패: {type(exc).__name__}") from None
             except httpx.TransportError as exc:
                 # httpx 예외는 URL(토큰 포함)을 담을 수 있어 원인 체인을 끊고 종류만 남긴다.
                 raise InstagramError(f"Instagram 요청 실패: {type(exc).__name__}") from None
