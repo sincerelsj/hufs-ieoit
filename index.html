@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>이어:잇 프로젝트 계획서</title>
+<meta name="description" content="HUFS 이어:잇 — AI 기반 학내 활동 기록 및 인수인계 아카이빙 플랫폼 계획 요약">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@600;800&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 한 단 요약 문서. 히어로의 '실'이 기수를 잇고, 아래는 문제 → 해결 → 구조 → 일정 → 팀 순서. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --ink: #17202e; --muted: #5a6577; --line: #dde2ea;
+  --accent: #1f5f8b; --thread: #d9a21b;
+  --ok: #1d7a55; --ok-bg: #e3f3eb; --todo: #9a6206; --todo-bg: #fbf0d9;
+  --f-display: "Gothic A1", "Noto Sans KR", system-ui, sans-serif;
+  --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161e; --surface: #18202b; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3443;
+  --accent: #6fb0de; --thread: #e8b73c; --ok: #6fd3a5; --ok-bg: #173327; --todo: #f0c26a; --todo-bg: #3a2c12;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11161e; --surface: #18202b; --ink: #e6ebf2; --muted: #9aa6b8; --line: #2a3443;
+  --accent: #6fb0de; --thread: #e8b73c; --ok: #6fd3a5; --ok-bg: #173327; --todo: #f0c26a; --todo-bg: #3a2c12;
+  color-scheme: dark }
+
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+main { max-width: 880px; margin: 0 auto; padding-block: 40px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(32px, 6vw, 48px); line-height: 1.15; margin: 12px 0 8px; letter-spacing: -.01em; }
+h1 .colon { color: var(--thread); }
+.lede { font-size: 17px; max-width: 60ch; margin: 0 0 12px; }
+.quote { font-family: var(--f-display); font-weight: 600; color: var(--accent); margin: 0; }
+
+.thread { margin: 24px 0 0; overflow-x: auto; }
+.thread svg { display: block; min-width: 540px; width: 100%; height: auto; }
+.t-line { stroke: var(--thread); stroke-width: 3; fill: none; }
+.t-knot { fill: var(--surface); stroke: var(--thread); stroke-width: 3; }
+.t-lbl { fill: var(--ink); font: 600 13px var(--f-body); }
+.t-sub { fill: var(--muted); font: 400 11px var(--f-mono); }
+.t-arch { fill: var(--accent); }
+.t-arch-txt { fill: var(--surface); font: 700 12px var(--f-body); }
+
+section { padding-top: 44px; }
+h2 { font-family: var(--f-display); font-weight: 800; font-size: 22px; margin: 0 0 14px; text-wrap: balance; }
+p { max-width: 66ch; }
+.muted { color: var(--muted); font-size: 13px; }
+
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; min-width: 0; }
+.box h3 { font-family: var(--f-mono); font-weight: 500; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.box ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+.features { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.features li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.features strong { font-family: var(--f-display); font-size: 16px; }
+.features span.d { font-size: 13px; color: var(--muted); }
+.pill { justify-self: start; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 999px; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.todo { background: var(--todo-bg); color: var(--todo); }
+
+.diagram { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin: 12px 0; overflow-x: auto; }
+pre.mermaid { margin: 0; background: transparent; text-align: center; font-family: var(--f-body); }
+
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-weight: 500; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.when { font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--accent); }
+
+.team { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.member { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 2px; }
+.member .role { font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.member .name { font-family: var(--f-display); font-weight: 800; font-size: 18px; }
+.member .bg { font-size: 13px; color: var(--muted); }
+
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<main>
+  <header>
+    <div class="meta"><span>프로젝트 계획 요약</span><span>2026-11-03</span><span>2026 AI 캠퍼스: 바이브코딩 경진대회</span></div>
+    <h1>HUFS 이어<span class="colon">:</span>잇</h1>
+    <p class="lede">학생회·학과 사무실의 활동 기록을 자동으로 모아 조직·학년도·임기별로 정리하고, HyperCLOVA X로 검색과 인수인계를 돕는 아카이빙 플랫폼입니다.</p>
+    <p class="quote">“사람은 매년 바뀌지만, 대학의 경험까지 매년 초기화될 필요는 없다.”</p>
+    <div class="thread" aria-label="학생회 기수가 바뀌어도 기록이 하나의 아카이브로 이어지는 모습">
+      <svg viewBox="0 0 760 120" role="img">
+        <path class="t-line" d="M20 60 C 120 20, 160 100, 250 60 S 390 20, 460 60 S 580 100, 640 60"/>
+        <circle class="t-knot" cx="110" cy="44" r="8"/>
+        <circle class="t-knot" cx="290" cy="50" r="8"/>
+        <circle class="t-knot" cx="470" cy="62" r="8"/>
+        <text class="t-lbl" x="110" y="92" text-anchor="middle">제36대</text>
+        <text class="t-sub" x="110" y="108" text-anchor="middle">2024학년도</text>
+        <text class="t-lbl" x="290" y="92" text-anchor="middle">제37대</text>
+        <text class="t-sub" x="290" y="108" text-anchor="middle">2025학년도</text>
+        <text class="t-lbl" x="470" y="92" text-anchor="middle">제38대</text>
+        <text class="t-sub" x="470" y="108" text-anchor="middle">2026학년도</text>
+        <rect class="t-arch" x="640" y="40" width="110" height="40" rx="6"/>
+        <text class="t-arch-txt" x="695" y="65" text-anchor="middle">이어:잇 아카이브</text>
+      </svg>
+    </div>
+  </header>
+
+  <section>
+    <h2>문제와 해결</h2>
+    <div class="pair">
+      <div class="box"><h3>지금</h3>
+        <ul><li>학생회·조교가 학기나 1년마다 바뀐다</li><li>기록이 인스타·홈페이지·개인 PC·카톡에 흩어져 있다</li><li>신임자는 같은 시행착오를 반복한다</li></ul></div>
+      <div class="box"><h3>이어:잇 도입 후</h3>
+        <ul><li>지금처럼 인스타를 운영하면 기록이 자동으로 쌓인다</li><li>조직 → 학년도 → 임기 순서로 정리된다</li><li>신임자는 검색하고, 인수인계 문서 초안을 받는다</li></ul></div>
+    </div>
+    <p class="muted">근거: 미디어커뮤니케이션학부 3개 계정 34개 게시물 분석. 공개 화면에는 최근 약 12개만 보이고, 조교 연락처가 학기마다 바뀌며, 핵심 공지가 카드뉴스 이미지 안에 있다.</p>
+  </section>
+
+  <section>
+    <h2>핵심 기능</h2>
+    <ul class="features">
+      <li><span class="pill ok">구현 완료</span><strong>자동 아카이빙</strong><span class="d">인스타 공식 API로 수집, 학년도·임기 자동 배정, 연락처 마스킹</span></li>
+      <li><span class="pill todo">본선 개발</span><strong>AI 기록 정리</strong><span class="d">행사·업무·공지 분류와 요약 (HyperCLOVA X)</span></li>
+      <li><span class="pill todo">본선 개발</span><strong>통합 검색</strong><span class="d">과거 활동·학사 공지를 자연어로 검색</span></li>
+      <li><span class="pill todo">본선 개발</span><strong>인수인계 문서</strong><span class="d">과거 기록과 담당자 메모로 초안 생성 (권한자만)</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>시스템 구조</h2>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+    IG["Instagram<br/>공식 API"] --> COL
+    WEB["학과 홈페이지"] --> COL
+    subgraph NCP["NAVER Cloud Platform"]
+        COL["수집기"] --> DB[("PostgreSQL<br/>Object Storage")]
+        DB --> BE["FastAPI"]
+        BE <--> AI["CLOVA Studio<br/>HyperCLOVA X · 임베딩"]
+        BE --> FE["Next.js 웹"]
+    end
+    FE --> U["학생회 · 조교 · 재학생"]
+</pre>
+    </div>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+    S1["수집"] --> S2["학년도·임기 배정"] --> S3["연락처 마스킹"] --> S4["AI 분류·요약"] --> S5["임베딩"]
+    S3 --> O1["아카이브"]
+    S5 --> O2["검색"]
+    S5 --> O3["인수인계 문서"]
+</pre>
+    </div>
+    <p class="muted">인스타그램은 공식 API(Business Discovery)만 씁니다. 비공식 스크래핑은 하지 않습니다.</p>
+  </section>
+
+  <section>
+    <h2>일정</h2>
+    <div class="tbl"><table>
+      <tbody>
+        <tr><td class="when">~ 11/10</td><td><strong>예선 접수</strong> · 기획서 제출, 인스타 수집기 구현 완료</td></tr>
+        <tr><td class="when">11/16 – 11/27</td><td><strong>MVP</strong> · NCP 배포, 아카이브 웹 화면, AI 분류·요약, 검색 1차</td></tr>
+        <tr><td class="when">11/28 – 12/6</td><td><strong>본선 제출</strong> · 인수인계 문서 생성, QA·사용성 테스트, 결과보고서</td></tr>
+        <tr><td class="when">12/9</td><td><strong>발표</strong> · 발표 10분 + Q&amp;A 5분, 라이브 데모</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>팀</h2>
+    <div class="team">
+      <div class="member"><span class="role">PM · AI Agent</span><span class="name">이승주</span><span class="bg">AI융합학과 석사과정</span></div>
+      <div class="member"><span class="role">Backend</span><span class="name">박성재</span><span class="bg">컴퓨터공학 학부</span></div>
+      <div class="member"><span class="role">Frontend</span><span class="name">음유현</span><span class="bg">AI융합학과 석사과정</span></div>
+      <div class="member"><span class="role">QA, 외국인 유학생 시점</span><span class="name">궈이판</span><span class="bg">미디어커뮤니케이션학과 박사과정</span></div>
+    </div>
+  </section>
+
+  <footer>자세한 계획(기능 우선순위, 데이터 모델, 리스크, 심사 대응)은 레포의 <code>docs/project-plan.md</code>에 있습니다.</footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  (function () {
+    if (!window.mermaid) return;
+    var dark = document.documentElement.getAttribute("data-theme") === "dark" ||
+      (document.documentElement.getAttribute("data-theme") !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    try {
+      mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "neutral", fontFamily: "Noto Sans KR, sans-serif" });
+      mermaid.run({ querySelector: "pre.mermaid:not([data-processed])" });
+    } catch (e) {}
+  })();
+</script>
+</body>
+</html>
