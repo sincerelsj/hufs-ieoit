@@ -60,11 +60,10 @@ def item(n: int, day: int) -> dict:
 
 
 def discovery_page(items: list[dict], after: str | None) -> dict:
+    """실제 응답처럼 paging에는 cursors.after만 있고 next는 없다."""
     media: dict = {"data": items}
     if after:
-        media["paging"] = {"cursors": {"after": after}, "next": "https://graph.facebook.com/next"}
-    else:
-        media["paging"] = {"cursors": {"after": "LAST"}}
+        media["paging"] = {"cursors": {"after": after}}
     return {"business_discovery": {"media": media, "id": "17841400000000009"}, "id": COLLECTOR_ID}
 
 
@@ -103,6 +102,30 @@ def test_iter_discovered_media_follows_cursor(ig, sleeps):
     )
     assert first["access_token"] == "tok"
     assert sleeps == [1.0]  # 페이지 사이 간격
+
+
+@respx.mock
+def test_iter_discovered_media_stops_on_empty_page_or_same_cursor(ig):
+    route = mock_discovery({
+        None: discovery_page([item(1, 20)], after="CUR1"),
+        "CUR1": discovery_page([item(2, 19)], after="CUR2"),
+        "CUR2": discovery_page([], after="CUR3"),  # 마지막 뒤 빈 페이지에도 커서가 올 수 있다
+    })
+
+    items = list(ig.iter_discovered_media("tok", COLLECTOR_ID, "dummy_target"))
+
+    assert len(items) == 2 and route.call_count == 3
+
+
+@respx.mock
+def test_iter_discovered_media_stops_when_cursor_repeats(ig):
+    route = mock_discovery({
+        None: discovery_page([item(1, 20)], after="CUR1"),
+        "CUR1": discovery_page([item(2, 19)], after="CUR1"),
+    })
+
+    assert len(list(ig.iter_discovered_media("tok", COLLECTOR_ID, "dummy_target"))) == 2
+    assert route.call_count == 2
 
 
 @respx.mock

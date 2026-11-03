@@ -140,7 +140,8 @@ class InstagramClient:
     ) -> Iterator[dict]:
         """Business Discovery로 다른 계정의 게시물을 최신순으로 끝까지 넘긴다.
 
-        중첩 필드라 paging.next URL이 없고, 커서를 media.after(...)에 넣어 다시 요청한다.
+        중첩 필드라 paging.next가 없고 cursors.after만 온다(2026-11-03 실제 응답 확인).
+        커서를 media.after(...)에 넣어 다시 요청하고, 빈 페이지·커서 없음·같은 커서면 끝낸다.
         """
         _check_username(username)
         after = None
@@ -155,11 +156,12 @@ class InstagramClient:
                 },
             )
             page = body.get("business_discovery", {}).get("media", {})
-            yield from page.get("data", [])
-            paging = page.get("paging", {})
-            after = paging.get("cursors", {}).get("after")
-            if not paging.get("next") or not after:
+            data = page.get("data", [])
+            yield from data
+            next_after = page.get("paging", {}).get("cursors", {}).get("after")
+            if not data or not next_after or next_after == after:
                 return
+            after = next_after
             self._sleep(DISCOVERY_PAGE_DELAY)  # 남의 계정을 훑으므로 페이지 사이에 간격을 둔다.
 
     def _paginate(self, url: str | None, params: dict | None) -> Iterator[dict]:
