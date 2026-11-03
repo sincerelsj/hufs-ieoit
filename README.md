@@ -29,15 +29,14 @@
 
 ## 👥 팀 & 역할
 
-| 역할 | 담당 | 주요 업무 | 주 작업 폴더 |
-|---|---|---|---|
-| PM / 기획 | _TBD_ | 일정·이슈 관리, 기획서·결과보고서, 학생회/학과 데이터 확보 | `docs/` |
-| Frontend | _TBD_ | 아카이브 페이지, 검색 UI, 인수인계 문서 화면 | `frontend/` |
-| Backend | _TBD_ | API, DB, 수집기(크롤러), NCP 배포 | `backend/` |
-| AI | _TBD_ | CLOVA Studio 연동: 분류·요약·검색·인수인계 생성 | `backend/app/ai/` |
-| QA | _TBD_ | 테스트 시나리오, 버그 리포트, 사용성 검증, 발표 데모 리허설 | `qa/` |
+| 역할 | 담당 | 소속 | 주요 업무 | 주 작업 폴더 |
+|---|---|---|---|---|
+| PM / 기획 · AI Agent | 이승주 | AI융합학과 석사과정 | 일정·이슈 관리, 기획서·결과보고서, 학생회/학과 데이터 확보, CLOVA Studio 연동(분류·요약·검색·인수인계 생성) | `docs/`, `backend/app/ai/` |
+| Backend | 박성재 | 컴퓨터공학 학부 | API, DB, 수집기(크롤러), NCP 배포 | `backend/` |
+| Frontend | 음유현 | AI융합학과 석사과정 | 아카이브 페이지, 검색 UI, 인수인계 문서 화면 | `frontend/` |
+| QA · 유학생 관점 | 궈이판 | 미디어커뮤니케이션학과 박사과정 | 테스트 시나리오, 버그 리포트, 사용성 검증, 유학생 사용자 검증·다국어 품질 확인, 발표 데모 리허설 | `qa/` |
 
-- 최대 5인 팀(대회 규정). 한 사람이 역할을 겸할 수 있습니다.
+- 4인 팀 (대회 규정 최대 5인). 한 사람이 역할을 겸할 수 있습니다.
 - 역할별 코드 소유자는 [`.github/CODEOWNERS`](.github/CODEOWNERS)에 GitHub ID를 채워 주세요.
 
 ---
@@ -115,7 +114,7 @@ cp .env.example .env   # 키는 팀 채널에서 받아 채우기
 - 백엔드: [`backend/README.md`](backend/README.md)
 - QA: [`qa/README.md`](qa/README.md)
 
-처음이라면 **[CONTRIBUTING.md](CONTRIBUTING.md)** 를 먼저 읽어 주세요.
+처음이라면 **[CONTRIBUTING.md](CONTRIBUTING.md)** 를 먼저 읽어 주세요. 전체 계획과 도식은 **[프로젝트 계획서](docs/project-plan.md)** 에 있습니다.
 
 ---
 
