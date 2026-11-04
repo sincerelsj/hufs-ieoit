@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hufs-ieoit-backend"
+version = "0.1.0"
+description = "HUFS 이어:잇 백엔드 (FastAPI)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy>=2.0",
+    "pydantic-settings",
+    "httpx",
+    "cryptography",
+    "itsdangerous",
+    "boto3",
+    "tzdata",  # Windows에서 zoneinfo("Asia/Seoul")가 동작하도록 시스템 tz DB 대신 제공
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "respx",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # starlette TestClient의 httpx 사용 안내 경고. respx가 httpx를 모킹하므로 httpx를 유지한다.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
+]
