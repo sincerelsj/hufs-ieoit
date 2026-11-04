@@ -184,24 +184,37 @@ dialog.toon::backdrop { background: rgba(12, 18, 28, .62); backdrop-filter: blur
 .toon-foot { display: flex; justify-content: flex-end; padding: 10px 16px 16px; }
 .toon-main { font: 700 14px var(--f-body); color: #fff; background: var(--accent); border: 0; border-radius: 10px; padding: 10px 18px; cursor: pointer; }
 .toon-main:focus-visible { outline: 2px solid var(--thread); outline-offset: 2px; }
-/* 1안(학년도 아카이브)으로 들어가는 큰 버튼 */
-.archive-cta { display: flex; align-items: center; gap: 18px; margin-top: 22px; max-width: 640px; padding: 18px 20px 18px 22px; border-radius: 18px;
-  background: #12233a; color: #fff; text-decoration: none; box-shadow: 0 10px 24px rgba(18, 35, 58, .25); transition: transform .2s ease, box-shadow .2s ease; }
-.archive-cta:hover { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(18, 35, 58, .32); }
+/* 학년도 아카이브 프로토타입 1·2·3안으로 들어가는 큰 카드 버튼 */
+.cta-head { margin: 24px 0 0; font-size: 13px; color: var(--muted); }
+.cta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 10px; }
+.archive-cta { display: flex; flex-direction: column; gap: 2px; padding: 18px 18px 20px; border-radius: 18px; background: #12233a; color: #fff;
+  text-decoration: none; box-shadow: 0 10px 24px rgba(18, 35, 58, .22); transition: transform .2s ease, box-shadow .2s ease; }
+.archive-cta:hover { transform: translateY(-4px); box-shadow: 0 16px 34px rgba(18, 35, 58, .32); }
 .archive-cta:focus-visible { outline: 3px solid #e7b53a; outline-offset: 3px; }
-.cta-books { display: flex; align-items: flex-end; gap: 4px; height: 52px; flex: 0 0 auto; }
+.cta-top { display: flex; align-items: flex-end; justify-content: space-between; height: 50px; margin-bottom: 12px; }
+.cta-books { display: flex; align-items: flex-end; gap: 4px; height: 48px; }
 .cta-books i { display: block; width: 12px; border-radius: 2px 2px 0 0; box-shadow: inset 3px 0 0 rgba(0, 0, 0, .15); }
-.cta-books i:nth-child(1) { height: 30px; background: #8a4b3c; } .cta-books i:nth-child(2) { height: 40px; background: #3f6b5a; }
-.cta-books i:nth-child(3) { height: 34px; background: #8f6418; } .cta-books i:nth-child(4) { height: 52px; background: #2f6f78; }
-.cta-books i:nth-child(5) { height: 44px; background: #94532a; } .cta-books i:nth-child(6) { height: 38px; background: #1f5f8b; }
-.cta-text { min-width: 0; }
-.cta-kicker { display: block; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; color: #e7b53a; }
-.cta-text b { display: block; font-family: var(--f-display); font-weight: 800; font-size: 20px; line-height: 1.3; }
-.cta-text small { display: block; margin-top: 2px; font-size: 13px; color: #b8c3d3; }
-.cta-arrow { margin-left: auto; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; background: #e7b53a; color: #12233a;
-  display: grid; place-items: center; font-size: 22px; font-weight: 800; transition: transform .2s ease; }
+.cta-books i:nth-child(1) { height: 28px; background: #8a4b3c; } .cta-books i:nth-child(2) { height: 38px; background: #3f6b5a; }
+.cta-books i:nth-child(3) { height: 32px; background: #8f6418; } .cta-books i:nth-child(4) { height: 48px; background: #2f6f78; }
+.cta-books i:nth-child(5) { height: 42px; background: #94532a; } .cta-books i:nth-child(6) { height: 36px; background: #1f5f8b; }
+.cta-thread { position: relative; display: flex; align-items: center; justify-content: space-between; width: 120px; height: 48px; }
+.cta-thread::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; background: #e7b53a; border-radius: 2px; }
+.cta-thread i { position: relative; display: block; border-radius: 50%; background: #72b2df; border: 2px solid #12233a; }
+.cta-thread i:nth-child(1) { width: 10px; height: 10px; } .cta-thread i:nth-child(2) { width: 16px; height: 16px; }
+.cta-thread i:nth-child(3) { width: 12px; height: 12px; } .cta-thread i:nth-child(4) { width: 20px; height: 20px; background: #e7b53a; }
+.cta-thread i:nth-child(5) { width: 14px; height: 14px; } .cta-thread i:nth-child(6) { width: 18px; height: 18px; }
+.cta-thread i:nth-child(7) { width: 11px; height: 11px; }
+.cta-drawers { display: flex; flex-direction: column; gap: 4px; width: 92px; }
+.cta-drawers i { position: relative; display: block; height: 13px; border-radius: 3px; background: #3a4049; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .3); }
+.cta-drawers i::after { content: ""; position: absolute; left: 8px; top: 3px; width: 22px; height: 7px; border-radius: 1.5px; background: #b8954a; }
+.cta-drawers i:nth-child(2) { transform: translateX(10px); background: #4a525d; }
+.cta-drawers i:nth-child(2)::after { background: #e2bd63; }
+.cta-kicker { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; color: #e7b53a; }
+.archive-cta b { font-family: var(--f-display); font-weight: 800; font-size: 19px; line-height: 1.3; }
+.archive-cta small { font-size: 13px; color: #b8c3d3; }
+.cta-arrow { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; background: #e7b53a; color: #12233a;
+  display: grid; place-items: center; font-size: 21px; font-weight: 800; transition: transform .2s ease; }
 .archive-cta:hover .cta-arrow { transform: translateX(4px); }
-@media (max-width: 480px) { .cta-books { display: none; } .cta-text b { font-size: 17px; } }
 @media (prefers-reduced-motion: reduce) { .archive-cta, .cta-arrow { transition: none; } .archive-cta:hover, .archive-cta:hover .cta-arrow { transform: none; } }
 </style>
 </head>
@@ -231,11 +244,21 @@ dialog.toon::backdrop { background: rgba(12, 18, 28, .62); backdrop-filter: blur
     <p class="lede">학생회·학과 사무실의 활동 기록을 자동으로 모아 조직·학년도·임기별로 정리하고, HyperCLOVA X로 검색과 인수인계를 돕습니다.</p>
     <p class="quote">“사람은 매년 바뀌지만, 대학의 경험까지 매년 초기화될 필요는 없다.”</p>
     <button class="toon-open" type="button" id="toon-open">▶ 네컷 웹툰 다시 보기</button>
-    <a class="archive-cta" href="https://sincerelsj.github.io/hufs-ieoit/archive.html">
-      <span class="cta-books" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-      <span class="cta-text"><span class="cta-kicker">PROTOTYPE · 1안</span><b>학년도 아카이브 열어 보기</b><small>미컴 학생회 9년, 게시물 1,261건을 학년도별 연감으로</small></span>
-      <span class="cta-arrow" aria-hidden="true">→</span>
-    </a>
+    <p class="cta-head">학년도 아카이브 프로토타입 · 실제 수집한 미컴 학생회 게시물 1,261건으로 만들었어요</p>
+    <div class="cta-grid">
+      <a class="archive-cta" href="https://sincerelsj.github.io/hufs-ieoit/archive.html">
+        <span class="cta-top"><span class="cta-books" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="cta-arrow" aria-hidden="true">→</span></span>
+        <span class="cta-kicker">1안 · 연감 서가</span><b>학년도 연감으로 보기</b><small>책등을 누르면 그해 학생회 기록이 펼쳐져요</small>
+      </a>
+      <a class="archive-cta" href="https://sincerelsj.github.io/hufs-ieoit/thread.html">
+        <span class="cta-top"><span class="cta-thread" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="cta-arrow" aria-hidden="true">→</span></span>
+        <span class="cta-kicker">2안 · 이어지는 실</span><b>한 줄 타임라인으로 보기</b><small>구슬 하나가 한 달, 매듭은 학생회 교체</small>
+      </a>
+      <a class="archive-cta" href="https://sincerelsj.github.io/hufs-ieoit/catalog.html">
+        <span class="cta-top"><span class="cta-drawers" aria-hidden="true"><i></i><i></i><i></i></span><span class="cta-arrow" aria-hidden="true">→</span></span>
+        <span class="cta-kicker">3안 · 기록 서랍</span><b>기록 서랍으로 보기</b><small>학년도 서랍 속 분류별 기록 카드</small>
+      </a>
+    </div>
 
     <div class="compare">
       <figure class="panel before" style="margin:0">

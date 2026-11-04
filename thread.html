@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이어지는 실 (2안) · 이어:잇</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@600;800&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* B안: 학년도들이 겨자색 실 하나로 이어지는 타임라인. 구슬 = 한 달, 매듭 = 학생회 교체. */
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --ink: #142033; --muted: #5b677a; --line: #dbe1ea; --soft-line: #eceff3;
+  --accent: #1f5f8b; --accent-soft: #e4eef6; --thread: #d39a12; --thread-ink: #96600a; --thread-soft: #fbf0d8;
+  --up: #1d7a55; --down: #b0402f; --bead-off: #7d8aa0; --empty: #c5cbd4;
+  --f-display: "Gothic A1", "Noto Sans KR", system-ui, sans-serif;
+  --f-body: "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; }
+a { color: var(--accent); }
+button { font: inherit; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 720px) { .wrap { padding: 0 24px; } }
+
+.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 22px; }
+.brand b { color: var(--thread); }
+.crumb { font-size: 13px; color: var(--muted); }
+.crumb strong { color: var(--ink); }
+.dept { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.dept select { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; }
+
+.hero { background: var(--surface); border-bottom: 1px solid var(--line); }
+.hero .wrap { padding-block: 30px 26px; }
+.kicker { margin: 0; font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; color: var(--thread-ink); }
+h1 { margin: 4px 0 6px; font-family: var(--f-display); font-weight: 800; font-size: clamp(26px, 4vw, 34px); line-height: 1.2; }
+.sub { margin: 0; color: var(--muted); font-size: 14px; }
+
+.thread-scroll { margin-top: 22px; overflow-x: auto; padding-bottom: 6px; }
+.thread { position: relative; display: flex; min-width: 1160px; }
+.thread::before { content: ""; position: absolute; left: 0; right: 0; top: 58px; height: 4px; background: var(--thread); border-radius: 2px; }
+.seg { position: relative; min-width: 96px; min-height: 132px; padding: 8px 10px 10px 14px; border: 0; border-radius: 12px; background: transparent;
+  color: var(--ink); cursor: pointer; text-align: left; display: flex; flex-direction: column; }
+.seg:hover { background: #f0f3f7; }
+.seg[aria-pressed="true"] { background: var(--accent-soft); }
+.seg:focus-visible, select:focus-visible, .pick:focus-visible { outline: 3px solid var(--thread); outline-offset: 2px; }
+.seg .yr { font-family: var(--f-mono); font-weight: 500; font-size: 15px; color: var(--muted); }
+.seg[aria-pressed="true"] .yr { color: var(--accent); }
+.beads { height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 1px; margin-top: 6px; }
+.bead { border-radius: 50%; border: 2px solid var(--surface); flex: 0 0 auto; background: var(--bead-off); }
+.seg[aria-pressed="true"] .bead { background: var(--accent); }
+.bead.zero, .seg[aria-pressed="true"] .bead.zero { background: var(--empty); }
+.seg .gen { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.seg .nm { font-family: var(--f-display); font-weight: 800; font-size: 17px; }
+.knot { position: absolute; left: -8px; top: 51px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 4px solid var(--thread); }
+
+.body { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; padding-block: 32px 64px; }
+main { flex: 999 1 560px; min-width: 0; }
+aside { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.meta { margin: 0; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+h2 { margin: 2px 0 10px; font-family: var(--f-display); font-weight: 800; font-size: clamp(24px, 3vw, 30px); }
+h2 em { font-style: normal; color: var(--thread-ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 13px; border-radius: 999px; padding: 4px 12px; font-weight: 700; }
+.chip.a { background: var(--accent-soft); color: var(--accent); }
+.chip.t { background: var(--thread-soft); color: #7a4f05; }
+.chip.g { background: var(--soft-line); color: #3d4757; font-weight: 400; }
+
+.river { list-style: none; margin: 22px 0 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.river li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 18px; }
+.river li + li { border-top: 1px solid var(--soft-line); }
+.river .mo { flex: 0 0 44px; font-family: var(--f-mono); font-weight: 500; font-size: 14px; }
+.river .bar { flex: 0 1 170px; display: flex; align-items: center; gap: 8px; }
+.river .bar i { height: 10px; border-radius: 5px; background: var(--accent); display: block; }
+.river .bar i.peak { background: var(--thread); }
+.river .bar span { font-family: var(--f-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.river .picks { flex: 1 1 300px; min-width: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.pick { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 12px 4px 4px; background: var(--bg); border-radius: 10px;
+  text-decoration: none; color: var(--ink); max-width: 100%; }
+.pick:hover { background: var(--accent-soft); }
+.pick img { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; flex: 0 0 auto; }
+.pick .tx { min-width: 0; display: flex; flex-direction: column; line-height: 1.35; padding-left: 8px; }
+.pick img + .tx { padding-left: 0; }
+.pick .c { font-size: 11px; color: var(--thread-ink); font-weight: 700; }
+.pick .t { font-size: 14px; font-weight: 500; }
+.note { margin: 12px 0 0; font-size: 12px; color: var(--muted); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.card h3 { margin: 2px 0 12px; font-family: var(--f-display); font-size: 19px; }
+.handoff { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+.handoff span { border-radius: 8px; padding: 4px 10px; background: var(--soft-line); }
+.handoff span.to { background: var(--accent-soft); color: var(--accent); }
+.handoff i { flex: 1 1 auto; height: 3px; background: var(--thread); border-radius: 2px; }
+table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 14px; }
+caption { text-align: left; font-size: 12px; color: var(--muted); padding-bottom: 6px; }
+tr { border-top: 1px solid var(--soft-line); }
+th { text-align: left; font-weight: 500; padding: 7px 0; }
+td { text-align: right; font-family: var(--f-mono); color: var(--muted); }
+td strong { color: var(--ink); }
+td.d { width: 56px; font-weight: 500; }
+td.up { color: var(--up); } td.down { color: var(--down); }
+.recur { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.recur li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.recur .k { flex: 0 0 72px; }
+.recur .dots { flex: 1 1 auto; display: flex; gap: 3px; }
+.recur .dots i { flex: 1 1 0; height: 8px; border-radius: 2px; background: #e3e7ed; }
+.recur .dots i.on { background: var(--thread); }
+.recur .n { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.ai { border: 2px dashed var(--empty); border-radius: 14px; padding: 18px 20px; color: var(--muted); font-size: 14px; }
+.ai h3 { margin: 0 0 6px; font-family: var(--f-display); font-size: 16px; color: var(--ink); }
+.ai p { margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px">
+      <span class="brand">이어<b>:</b>잇</span>
+      <nav class="crumb" aria-label="현재 위치">한국외대 › 미디어커뮤니케이션학부 › <strong>학생회 @hufs_mecomm</strong></nav>
+    </div>
+    <div class="dept">
+      <label for="dept">학과·단체</label>
+      <select id="dept">
+        <option>미디어커뮤니케이션학부 학생회</option>
+        <option disabled>미디어커뮤니케이션학부 학부장실 · 연결 준비 중</option>
+        <option disabled>경제학부 학생회 · 수집 전</option>
+        <option disabled>정치외교학과 학생회 · 수집 전</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<section class="hero" aria-labelledby="threadTitle">
+  <div class="wrap">
+    <p class="kicker">ONE THREAD · 2018 — 2026</p>
+    <h1 id="threadTitle">학생회는 바뀌어도, 기록은 한 줄로 이어집니다</h1>
+    <p class="sub">구슬 하나가 한 달입니다. 클수록 그달 게시물이 많습니다. 매듭은 학생회가 바뀐 자리입니다.</p>
+    <div class="thread-scroll"><div class="thread" id="thread" role="group" aria-label="학년도 선택"></div></div>
+  </div>
+</section>
+
+<div class="wrap body">
+  <main>
+    <p class="meta" id="meta"></p>
+    <h2 id="title"></h2>
+    <div class="chips" id="chips"></div>
+    <ol class="river" id="river" aria-label="월별 기록"></ol>
+    <p class="note">대표 게시물은 분류마다 하나씩 골랐습니다. 나머지 게시물은 달을 누르면 펼쳐지도록 만들 예정입니다.</p>
+  </main>
+  <aside>
+    <section class="card" aria-labelledby="handTitle">
+      <p class="kicker" style="font-size:11px">HANDOVER</p>
+      <h3 id="handTitle">인수인계 노트</h3>
+      <div class="handoff"><span id="hFrom"></span><i aria-hidden="true"></i><span class="to" id="hTo"></span></div>
+      <table><caption>분류별 게시물 수, 전 학년도와 비교</caption><tbody id="hRows"></tbody></table>
+    </section>
+    <section class="card">
+      <h3 style="margin-bottom:4px;font-size:17px">해마다 돌아오는 일</h3>
+      <p class="note" style="margin:0 0 10px">9개 학년도 중 몇 해에 기록이 있는지</p>
+      <ul class="recur" id="recur"></ul>
+    </section>
+    <section class="ai">
+      <h3>AI 인수인계 요약</h3>
+      <p>[AI가 이 학년도 게시물을 읽고 만든 인수인계 요약이 들어갈 자리]</p>
+    </section>
+  </aside>
+</div>
+
+<script>
+/* 미컴 학생회 학년도별 요약 (2026-11-03 수집 기준) */
+var YEARS = [{"y":2018,"gen":"30","name":"한울","count":33,"first":"2018-06-04","last":"2018-12-11","months":[0,0,0,7,1,3,13,6,1,2,0,0],"cats":[["일상",19],["선거",5],["개강·종강",3],["간식사업",3],["시험응원",1],["장학·설문",1],["공지",1]],"picks":[{"d":"2018-06-13","c":"선거","t":"오늘은 6.13 지방선거 날입니당","img":"assets/y2018-0.jpg","u":"https://www.instagram.com/p/Bj83UNNB_aI/"},{"d":"2018-10-15","c":"간식사업","t":"시험기간=간식뇸뇸","img":"assets/y2018-1.jpg","u":"https://www.instagram.com/p/Bo8C9SWFhD6/"},{"d":"2018-09-02","c":"개강·종강","t":"내일이 벌써 개강인데요!개강파티 소식을 들고 왔습니다~ 개강 첫 주의…","img":"assets/y2018-2.jpg","u":"https://www.instagram.com/p/BnNJmPQBnF3/"},{"d":"2018-09-13","c":"일상","t":"의사정족수를 채워야 정기총회가 개회됩니다! 정기총회가 성사될 수 있도…","img":"","u":"https://www.instagram.com/p/Bnp4YfJBfPM/"}]},{"y":2019,"gen":"31","name":"컴팩트","count":106,"first":"2019-03-03","last":"2020-02-27","months":[7,6,16,8,1,9,17,8,13,6,3,12],"cats":[["일상",36],["선거",27],["새내기",12],["개강·종강",11],["공지",9],["간식사업",5],["시험응원",3],["장학·설문",2],["축제",1]],"picks":[{"d":"2020-02-18","c":"새내기","t":"새내기 여러분을 위한 늘봄 학생회의 세 번째 선물이 도착했습니다","img":"assets/y2019-0.jpg","u":"https://www.instagram.com/p/B8sJZ1Hj7bF/"},{"d":"2019-11-25","c":"선거","t":"32대 미디어커뮤니케이션학부 학생회장 후보자 공청회","img":"assets/y2019-1.jpg","u":"https://www.instagram.com/p/B5R83yqjf8F/"},{"d":"2019-12-10","c":"간식사업","t":"2019 2학기 기말고사 간식사업","img":"assets/y2019-2.jpg","u":"https://www.instagram.com/p/B54FVB_D1xu/"},{"d":"2019-09-02","c":"개강·종강","t":"30분 뒤 방학송별회(a.k.a 개강파티","img":"","u":"https://www.instagram.com/p/B15ufyJDf7X/"},{"d":"2019-08-26","c":"공지","t":"사회대 전공책 플리마켓 '아나바다' 책 접수 안내","img":"","u":"https://www.instagram.com/p/B1n1oE9DPYe/"},{"d":"2019-06-18","c":"일상","t":"미디어커뮤니케이션 연구소 특강 안녕하십니까, 미디어학부장실입니다","img":"","u":"https://www.instagram.com/p/By1ttloj6J8/"}]},{"y":2020,"gen":"32","name":"늘봄","count":77,"first":"2020-03-05","last":"2021-02-28","months":[4,7,7,9,5,2,7,7,11,5,3,10],"cats":[["일상",31],["새내기",14],["선거",13],["공지",6],["개강·종강",4],["간식사업",4],["시험응원",3],["장학·설문",2]],"picks":[{"d":"2021-01-09","c":"새내기","t":"신입생 단톡방 개설 안내","img":"assets/y2020-0.jpg","u":"https://www.instagram.com/p/CJ0wVziDVX_/"},{"d":"2020-11-02","c":"선거","t":"제33대 학생회장단 선거","img":"assets/y2020-1.jpg","u":"https://www.instagram.com/p/CHFZLYnj8B7/"},{"d":"2020-12-05","c":"간식사업","t":"기말고사 간식사업","img":"assets/y2020-2.jpg","u":"https://www.instagram.com/p/CIZ-wASjEnh/"},{"d":"2020-05-11","c":"공지","t":"집행위원 면접일정 공지","img":"","u":"https://www.instagram.com/p/CACFkk3jFGg/"},{"d":"2020-09-16","c":"일상","t":"2020 하반기 미디어커뮤니케이션학부 정기총회 소집공고","img":"","u":"https://www.instagram.com/p/CFL2D9MD6jb/"}]},{"y":2021,"gen":"33","name":"나래","count":141,"first":"2021-03-01","last":"2022-02-18","months":[26,17,6,6,6,6,10,8,17,33,4,2],"cats":[["선거",68],["일상",37],["공지",11],["새내기",8],["간식사업",8],["시험응원",6],["장학·설문",3]],"picks":[{"d":"2021-06-29","c":"새내기","t":"보도사진학회 신입생 추가 모집 관련 결정문","img":"assets/y2021-0.jpg","u":"https://www.instagram.com/p/CQtBclFD88S/"},{"d":"2021-12-01","c":"선거","t":"제34대 미디어커뮤니케이션학부 학생회장단 선거운동본부 포스터 공고","img":"assets/y2021-1.jpg","u":"https://www.instagram.com/p/CW74t2fP_xt/"},{"d":"2021-10-11","c":"간식사업","t":"중간고사 간식사업","img":"assets/y2021-2.jpg","u":"https://www.instagram.com/p/CU4LIT4vsqa/"},{"d":"2021-10-06","c":"시험응원","t":"안녕하세요 미디어커뮤니케이션학부 학생회 나래입니다 이번 중간고사 기간…","img":"","u":"https://www.instagram.com/p/CUrFDpSPEXp/"},{"d":"2021-06-09","c":"공지","t":"방송제작실습실 이용 매뉴얼 게시 안내","img":"","u":"https://www.instagram.com/p/CP4zzi8D_nF/"},{"d":"2021-08-21","c":"일상","t":"중고책 장터 판매 신청","img":"","u":"https://www.instagram.com/p/CS1NxrYFLZX/"}]},{"y":2022,"gen":"34","name":"동행","count":171,"first":"2022-03-04","last":"2023-02-27","months":[14,3,20,4,6,28,14,10,21,24,11,16],"cats":[["일상",61],["공지",38],["선거",28],["새내기",15],["장학·설문",9],["MT",8],["간식사업",4],["축제",4],["개강·종강",3],["시험응원",1]],"picks":[{"d":"2023-01-26","c":"새내기","t":"새내기 새로 배움터 공지 및 정든내기 참가자 모…","img":"assets/y2022-0.jpg","u":"https://www.instagram.com/p/Cn3oS20P-4N/"},{"d":"2022-10-07","c":"축제","t":"축제 부스 보고","img":"","u":"https://www.instagram.com/p/Cjaa1jkveB8/"},{"d":"2023-01-09","c":"MT","t":"2023 총 MT 수요조사","img":"assets/y2022-2.jpg","u":"https://www.instagram.com/p/CnLiXEJPdpg/"},{"d":"2022-12-02","c":"선거","t":"제35대 학생회장단 선거운동본부 정책자료집 공고","img":"","u":"https://www.instagram.com/p/ClqyNfYvTIj/"},{"d":"2022-10-10","c":"간식사업","t":"하반기 중간고사 간식사업 안내","img":"","u":"https://www.instagram.com/p/CjhG0oov066/"},{"d":"2022-08-26","c":"개강·종강","t":"2022 - 2학기 개강파티","img":"","u":"https://www.instagram.com/p/ChtQ3Qwv1qx/"}]},{"y":2023,"gen":"35","name":"내일","count":214,"first":"2023-03-01","last":"2024-02-29","months":[17,8,30,6,3,15,13,14,39,44,10,15],"cats":[["선거",69],["일상",58],["공지",41],["새내기",16],["장학·설문",11],["간식사업",7],["개강·종강",6],["시험응원",3],["MT",3]],"picks":[{"d":"2024-01-02","c":"새내기","t":"24학번 새내기를 찾습니다","img":"assets/y2023-0.jpg","u":"https://www.instagram.com/p/C1lrXnKPbAg/"},{"d":"2023-09-20","c":"MT","t":"23학번 동기 MT 추억보고","img":"assets/y2023-1.jpg","u":"https://www.instagram.com/p/CxZX6TPPtl_/"},{"d":"2023-12-03","c":"선거","t":"제36대 학생회장단 선거 D-3","img":"assets/y2023-2.jpg","u":"https://www.instagram.com/p/C0YNty_PXox/"},{"d":"2023-10-06","c":"간식사업","t":"2023 하반기 중간고사 간식사업 안내","img":"","u":"https://www.instagram.com/p/CyC-tfzPthD/"},{"d":"2023-08-28","c":"개강·종강","t":"2023-2 개강파티","img":"","u":"https://www.instagram.com/p/CweijbqvurN/"},{"d":"2023-05-10","c":"공지","t":"핸드볼 대회 경기 안내","img":"","u":"https://www.instagram.com/p/CsC2JnCvvAQ/"}]},{"y":2024,"gen":"36","name":"PR:ISM","count":189,"first":"2024-03-02","last":"2025-02-28","months":[22,8,27,8,6,11,23,14,22,22,11,15],"cats":[["일상",81],["공지",32],["선거",25],["새내기",22],["개강·종강",8],["간식사업",8],["시험응원",5],["장학·설문",4],["축제",2],["MT",2]],"picks":[{"d":"2025-02-10","c":"새내기","t":"2025 새내기 새로 배움터 새내기 추가 모집 안내","img":"assets/y2024-0.jpg","u":"https://www.instagram.com/p/DF4jyp2v23u/"},{"d":"2024-08-01","c":"MT","t":"2024 동기 MT 본 신청","img":"assets/y2024-1.jpg","u":"https://www.instagram.com/p/C-HMdr8ysuc/"},{"d":"2024-12-03","c":"선거","t":"학생회장단 후보자 공청회 사전 질의 취합 안내","img":"assets/y2024-2.jpg","u":"https://www.instagram.com/p/DDGGjw8TKxA/"},{"d":"2024-05-31","c":"간식사업","t":"2024 상반기 기말고사 간식사업 안내","img":"","u":"https://www.instagram.com/p/C7oPkZzPjSw/"},{"d":"2024-10-09","c":"시험응원","t":"중간고사 이벤트 “미컴人 스터디“","img":"","u":"https://www.instagram.com/p/DA5NJTUThOi/"},{"d":"2024-09-01","c":"개강·종강","t":"2024-2 개강파티","img":"","u":"https://www.instagram.com/p/C_Xb0IkyDHy/"}]},{"y":2025,"gen":"37","name":"동화","count":188,"first":"2025-03-01","last":"2026-02-27","months":[26,10,32,9,9,18,22,10,18,10,8,16],"cats":[["공지",58],["일상",50],["새내기",19],["개강·종강",16],["선거",16],["시험응원",12],["간식사업",10],["장학·설문",4],["MT",3]],"picks":[{"d":"2026-02-10","c":"새내기","t":"2026 미디어커뮤니케이션학부 신입생 오리엔테이션 안내","img":"assets/y2025-0.jpg","u":"https://www.instagram.com/p/DUk8ey8j--r/"},{"d":"2025-07-06","c":"MT","t":"2025 동기 MT 수요조사","img":"assets/y2025-1.jpg","u":"https://www.instagram.com/p/DLw4j2nRHIC/"},{"d":"2025-11-14","c":"선거","t":"예비후보자 등록 공고","img":"assets/y2025-2.jpg","u":"https://www.instagram.com/p/DRCvWtwkrEJ/"},{"d":"2025-05-30","c":"간식사업","t":"2025 상반기 기말고사 간식사업 안내","img":"","u":"https://www.instagram.com/p/DKQwHOpvar3/"},{"d":"2025-09-01","c":"개강·종강","t":"2025-2 개강파티","img":"","u":"https://www.instagram.com/p/DOC-ktTEbRm/"},{"d":"2025-08-18","c":"공지","t":"학회 활동 증명서 발급 안내","img":"","u":"https://www.instagram.com/p/DNecueuSPGk/"}]},{"y":2026,"gen":"38","name":"은하","count":142,"first":"2026-03-01","last":"2026-11-01","months":[25,19,16,9,6,18,23,23,3,0,0,0],"cats":[["일상",49],["공지",32],["선거",27],["개강·종강",11],["간식사업",10],["축제",4],["새내기",3],["장학·설문",2],["시험응원",2],["MT",2]],"picks":[{"d":"2026-03-07","c":"새내기","t":"신입생 학생회비 납부 안내","img":"assets/y2026-0.jpg","u":"https://www.instagram.com/p/DVlPPFYmo0z/"},{"d":"2026-09-21","c":"축제","t":"2026 미디어커뮤니케이션학부 축제 부스 기획단 모집","img":"assets/y2026-1.jpg","u":"https://www.instagram.com/p/DdjQKFrGnvf/"},{"d":"2026-08-01","c":"MT","t":"2026 동기 MT 본신청","img":"assets/y2026-2.jpg","u":"https://www.instagram.com/p/Dbf-Z5gGpq7/"},{"d":"2026-04-04","c":"선거","t":"제38대 학생회장단 재선거 D-2","img":"","u":"https://www.instagram.com/p/DWsZZMFDQTP/"},{"d":"2026-06-07","c":"간식사업","t":"2026 상반기 기말고사 간식사업 안내","img":"","u":"https://www.instagram.com/p/DZSDNremrR1/"},{"d":"2026-09-01","c":"개강·종강","t":"2026-2 개강파티","img":"","u":"https://www.instagram.com/p/Dcv1rliGlTT/"}]}];
+(function () {
+  var MONTHS = ['3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월', '1월', '2월'];
+  var KEYS = ['새내기', '선거', '간식사업', '개강·종강', '시험응원', 'MT', '축제'];
+  var cur = 2023;
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function fmt(s) { return s.slice(0, 7).replace('-', '.'); }
+  function monthOf(s) { return (parseInt(s.slice(5, 7), 10) + 9) % 12; }
+
+  var thread = document.getElementById('thread');
+  YEARS.forEach(function (r, i) {
+    var b = el('button', 'seg'); b.type = 'button';
+    b.style.flex = Math.max(60, r.count) + ' 1 0px';
+    b.setAttribute('aria-label', r.y + '학년도 제' + r.gen + '대 ' + r.name + ', 게시물 ' + r.count + '건');
+    b.appendChild(el('span', 'yr', String(r.y)));
+    var beads = el('span', 'beads'); beads.setAttribute('aria-hidden', 'true');
+    r.months.forEach(function (n) {
+      var s = n === 0 ? 6 : Math.round(8 + (n / 44) * 16);
+      var d = el('span', 'bead' + (n === 0 ? ' zero' : '')); d.style.width = d.style.height = s + 'px'; beads.appendChild(d);
+    });
+    b.appendChild(beads);
+    b.appendChild(el('span', 'gen', '제' + r.gen + '대'));
+    b.appendChild(el('span', 'nm', r.name));
+    if (i > 0) { var k = el('span', 'knot'); k.setAttribute('aria-hidden', 'true'); b.appendChild(k); }
+    b.addEventListener('click', function () { cur = r.y; render(); });
+    thread.appendChild(b);
+  });
+
+  function render() {
+    var idx = YEARS.findIndex(function (r) { return r.y === cur; }), d = YEARS[idx], prev = idx > 0 ? YEARS[idx - 1] : null;
+    Array.prototype.forEach.call(thread.children, function (b, i) { b.setAttribute('aria-pressed', YEARS[i].y === cur ? 'true' : 'false'); });
+    var maxM = Math.max.apply(null, d.months), peakI = d.months.indexOf(maxM);
+    document.getElementById('meta').textContent = d.y + '학년도 · ' + fmt(d.first) + ' — ' + fmt(d.last);
+    var h = document.getElementById('title'); h.textContent = '제' + d.gen + '대 ';
+    h.appendChild(el('em', null, '‘' + d.name + '’')); h.appendChild(document.createTextNode(' 학생회의 1년'));
+    var chips = document.getElementById('chips'); chips.textContent = '';
+    chips.appendChild(el('span', 'chip a', '게시물 ' + d.count + '건'));
+    chips.appendChild(el('span', 'chip t', '가장 바빴던 달 ' + MONTHS[peakI] + ' ' + maxM + '건'));
+    var note = d.y === 2018 ? '2018년 6월 계정 개설' : (d.y === 2026 ? '진행 중 · 11월 1일까지 수집' : '');
+    if (note) chips.appendChild(el('span', 'chip g', note));
+
+    var river = document.getElementById('river'); river.textContent = '';
+    d.months.forEach(function (n, i) {
+      var li = el('li');
+      li.appendChild(el('span', 'mo', MONTHS[i]));
+      var bar = el('span', 'bar'), bi = el('i', i === peakI ? 'peak' : '');
+      bi.style.width = Math.max(3, Math.round((n / 44) * 120)) + 'px'; bi.setAttribute('aria-hidden', 'true');
+      bar.appendChild(bi); bar.appendChild(el('span', null, n + '건')); li.appendChild(bar);
+      var picks = el('span', 'picks');
+      d.picks.filter(function (p) { return monthOf(p.d) === i; }).forEach(function (p) {
+        var a = el('a', 'pick'); a.href = p.u; a.target = '_blank'; a.rel = 'noopener';
+        if (p.img) { var im = el('img'); im.src = p.img; im.alt = ''; im.loading = 'lazy'; a.appendChild(im); }
+        var tx = el('span', 'tx'); tx.appendChild(el('span', 'c', p.c + ' · ' + p.d)); tx.appendChild(el('span', 't', p.t));
+        a.appendChild(tx); picks.appendChild(a);
+      });
+      li.appendChild(picks); river.appendChild(li);
+    });
+
+    document.getElementById('hFrom').textContent = prev ? '제' + prev.gen + '대 ' + prev.name : '이전 기록 없음';
+    document.getElementById('hTo').textContent = '제' + d.gen + '대 ' + d.name;
+    var pm = {}; if (prev) prev.cats.forEach(function (c) { pm[c[0]] = c[1]; });
+    var rows = document.getElementById('hRows'); rows.textContent = '';
+    d.cats.slice(0, 6).forEach(function (c) {
+      var tr = el('tr'), p = pm[c[0]] || 0, delta = c[1] - p;
+      var th = el('th', null, c[0]); th.scope = 'row'; tr.appendChild(th);
+      var td = el('td'); td.textContent = (prev ? p : '—') + ' → '; td.appendChild(el('strong', null, String(c[1]))); tr.appendChild(td);
+      tr.appendChild(el('td', 'd ' + (delta >= 0 ? 'up' : 'down'), prev ? (delta > 0 ? '+' + delta : String(delta)) : ''));
+      rows.appendChild(tr);
+    });
+  }
+
+  var recur = document.getElementById('recur');
+  KEYS.forEach(function (k) {
+    var li = el('li'), dots = el('span', 'dots'), n = 0;
+    dots.setAttribute('aria-hidden', 'true');
+    YEARS.forEach(function (r) { var on = r.cats.some(function (c) { return c[0] === k && c[1] > 0; }); if (on) n++; dots.appendChild(el('i', on ? 'on' : '')); });
+    li.appendChild(el('span', 'k', k)); li.appendChild(dots); li.appendChild(el('span', 'n', n + '/9'));
+    recur.appendChild(li);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
